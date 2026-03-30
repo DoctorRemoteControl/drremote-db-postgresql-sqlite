@@ -1,24 +1,25 @@
 # DrRemote DB
 
-`DrRemote DB` provides the PostgreSQL database layer for DrRemote as a modular OSGi/Karaf repository.
+`DrRemote DB` provides PostgreSQL and SQLite database layers for DrRemote as a modular OSGi/Karaf repository.
 
 It contains:
 
 * a PostgreSQL core bundle for JDBC access, transactions, and migrations
-* a Karaf features module for simple runtime installation
+* a SQLite core bundle for file-based JDBC access, transactions, and migrations
+* Karaf features modules for simple runtime installation
 
 ## Overview
 
-This repository is intended for modular Java applications running in OSGi/Karaf that need a shared PostgreSQL integration layer.
+This repository is intended for modular Java applications running in OSGi/Karaf that need reusable database integration layers for PostgreSQL or SQLite.
 
-The PostgreSQL core provides:
+The database cores provide:
 
 * JDBC-based database access
 * transaction handling via `TransactionManager`
 * a HikariCP-backed `DataSource`
 * lightweight query helpers
-* schema-based plugin migrations
-* centralized migration tracking in `core.schema_migrations`
+* plugin migrations
+* centralized migration tracking
 
 ## Modules
 
@@ -47,6 +48,31 @@ Provides:
   * HikariCP
   * the DrRemote PostgreSQL core bundle
 
+### `de.drremote.db.sqlite`
+
+The SQLite core bundle.
+
+Provides:
+
+* SQLite connectivity
+* pooled `DataSource`
+* transaction support
+* query execution helpers
+* plugin migration support
+
+### `de.drremote.db.sqlite.features`
+
+The Karaf features module.
+
+Provides:
+
+* a Karaf feature descriptor
+* runtime provisioning of:
+
+  * SQLite JDBC driver
+  * HikariCP
+  * the DrRemote SQLite core bundle
+
 ## Requirements
 
 * Java 21
@@ -55,6 +81,7 @@ Provides:
 * PostgreSQL JDBC driver available in the runtime
 * HikariCP available in the runtime
 * `psql` available on `PATH` for script-based migrations
+* SQLite JDBC driver available in the runtime
 
 ## Build
 
@@ -70,10 +97,13 @@ Published artifacts:
 
 * Bundle: `de.drremote.db:postgresql`
 * Feature: `de.drremote.db:postgresql-features`
+* Bundle: `de.drremote.db:sqlite`
+* Feature: `de.drremote.db:sqlite-features`
 
 Karaf feature name:
 
 * `de.drremote-db-postgresql`
+* `de.drremote-db-sqlite`
 
 ## Karaf Usage
 
@@ -87,6 +117,20 @@ Install the feature:
 
 ```sh
 feature:install de.drremote-db-postgresql
+```
+
+SQLite:
+
+Add the features repository:
+
+```sh
+feature:repo-add mvn:de.drremote.db/sqlite-features/1.0.0/xml/features
+```
+
+Install the feature:
+
+```sh
+feature:install de.drremote-db-sqlite
 ```
 
 ## Configuration
@@ -105,15 +149,30 @@ $KARAF_HOME/etc/de.drremote.db.postgresql.cfg
 
 For a full configuration example, see:
 
-* `docs/configuration.md`
+* `docs/configuration-postgresql.md`
+
+The SQLite core is configured through the ConfigAdmin PID:
+
+```text
+de.drremote.db.sqlite
+```
+
+Recommended configuration file:
+
+```text
+$KARAF_HOME/etc/de.drremote.db.sqlite.cfg
+```
 
 ## Documentation
 
 Repository documentation:
 
-* `docs/configuration.md` — configuration examples
-* `docs/usage.md` — usage examples
+* `docs/configuration-postgresql.md` — PostgreSQL configuration
+* `docs/configuration-sqlite.md` — SQLite configuration
+* `docs/usage-postgresql.md` — PostgreSQL usage examples
+* `docs/usage-sqlite.md` — SQLite usage examples
 * `de.drremote.db.postgresql/README.md` — module-level documentation
+* `de.drremote.db.sqlite/README.md` — module-level documentation
 
 ## Repository Layout
 
@@ -126,7 +185,9 @@ db/
 │  ├─ configuration.md
 │  └─ usage.md
 ├─ de.drremote.db.postgresql/
-└─ de.drremote.db.postgresql.features/
+├─ de.drremote.db.postgresql.features/
+├─ de.drremote.db.sqlite/
+└─ de.drremote.db.sqlite.features/
 ```
 
 ## Notes

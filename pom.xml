@@ -14,6 +14,8 @@
   <modules>
     <module>de.drremote.db.postgresql</module>
     <module>de.drremote.db.postgresql.features</module>
+    <module>de.drremote.db.sqlite</module>
+    <module>de.drremote.db.sqlite.features</module>
   </modules>
 
 </project>
