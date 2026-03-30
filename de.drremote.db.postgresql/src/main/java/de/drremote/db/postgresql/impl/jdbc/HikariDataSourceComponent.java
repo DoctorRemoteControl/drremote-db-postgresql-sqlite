@@ -1,0 +1,147 @@
+package de.drremote.db.postgresql.impl.jdbc;
+
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import org.osgi.service.component.annotations.*;
+
+import javax.sql.DataSource;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.util.Map;
+import java.util.logging.Logger;
+
+@Component(
+    service = DataSource.class,
+    immediate = true,
+    configurationPid = "de.drremote.db.postgresql"
+)
+public final class HikariDataSourceComponent implements DataSource {
+
+    private static final Logger LOG = Logger.getLogger(HikariDataSourceComponent.class.getName());
+
+    private volatile HikariDataSource delegate;
+
+    @Activate
+    void activate(Map<String, Object> props) {
+        // OSGi requirement: explicitly load the JDBC driver
+        try {
+            Class.forName("org.postgresql.Driver");
+        } catch (ClassNotFoundException e) {
+            throw new IllegalStateException("PostgreSQL JDBC Driver not found (OSGi classloader)", e);
+        }
+
+        reconfigure(props);
+
+        LOG.info("DataSource active: " + delegate.getJdbcUrl());
+    }
+
+    @Modified
+    void modified(Map<String, Object> props) {
+        reconfigure(props);
+        LOG.info("DataSource reconfigured: " + delegate.getJdbcUrl());
+    }
+
+    @Deactivate
+    void deactivate() {
+        closeDelegate();
+        LOG.info("DataSource stopped");
+    }
+
+    private synchronized void reconfigure(Map<String, Object> props) {
+        // defaults
+        String jdbcUrl = getString(props, "jdbcUrl", "jdbc:postgresql://localhost:5432/postgres");
+        String username = getString(props, "username", "postgres");
+        String password = getString(props, "password", "postgres");
+        int maxPoolSize = getInt(props, "maxPoolSize", 10);
+        int minIdle = getInt(props, "minIdle", 1);
+        String poolName = getString(props, "poolName", "db-postgresql-pool");
+
+        // optional: support legacy keys as fallback
+        jdbcUrl = getString(props, "jdbcUrl", getString(props, "dbcore.jdbcUrl", jdbcUrl));
+        username = getString(props, "username", getString(props, "dbcore.username", username));
+        password = getString(props, "password", getString(props, "dbcore.password", password));
+
+        HikariConfig hc = new HikariConfig();
+        hc.setJdbcUrl(jdbcUrl);
+        hc.setUsername(username);
+        hc.setPassword(password);
+        hc.setMaximumPoolSize(maxPoolSize);
+        hc.setMinimumIdle(minIdle);
+        hc.setPoolName(poolName);
+
+        closeDelegate();
+        delegate = new HikariDataSource(hc);
+    }
+
+    private void closeDelegate() {
+        HikariDataSource ds = delegate;
+        if (ds != null) {
+            try { ds.close(); } catch (Exception ignore) {}
+        }
+        delegate = null;
+    }
+
+    private static String getString(Map<String, Object> props, String key, String def) {
+        Object v = props == null ? null : props.get(key);
+        return (v == null) ? def : String.valueOf(v).trim();
+    }
+
+    private static int getInt(Map<String, Object> props, String key, int def) {
+        Object v = props == null ? null : props.get(key);
+        if (v == null) return def;
+        if (v instanceof Number n) return n.intValue();
+        try { return Integer.parseInt(String.valueOf(v).trim()); }
+        catch (Exception e) { return def; }
+    }
+
+    // =====================
+    // DataSource delegation
+    // =====================
+
+    @Override
+    public Connection getConnection() throws SQLException {
+        return delegate.getConnection();
+    }
+
+    @Override
+    public Connection getConnection(String username, String password) throws SQLException {
+        return delegate.getConnection(username, password);
+    }
+
+    @Override
+    public PrintWriter getLogWriter() throws SQLException {
+        return delegate.getLogWriter();
+    }
+
+    @Override
+    public void setLogWriter(PrintWriter out) throws SQLException {
+        delegate.setLogWriter(out);
+    }
+
+    @Override
+    public void setLoginTimeout(int seconds) throws SQLException {
+        delegate.setLoginTimeout(seconds);
+    }
+
+    @Override
+    public int getLoginTimeout() throws SQLException {
+        return delegate.getLoginTimeout();
+    }
+
+    @Override
+    public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+        return delegate.getParentLogger();
+    }
+
+    @Override
+    public <T> T unwrap(Class<T> iface) throws SQLException {
+        return delegate.unwrap(iface);
+    }
+
+    @Override
+    public boolean isWrapperFor(Class<?> iface) throws SQLException {
+        return delegate.isWrapperFor(iface);
+    }
+}

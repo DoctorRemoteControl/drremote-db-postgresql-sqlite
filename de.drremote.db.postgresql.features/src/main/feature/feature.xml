@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<features xmlns="http://karaf.apache.org/xmlns/features/v1.6.0"
+          name="de.drremote.db.postgresql.features">
+
+  <feature name="de.drremote-db-postgresql" version="1.0.0">
+    <details>DrRemote PostgreSQL core for Karaf</details>
+
+    <bundle start-level="80">wrap:mvn:org.postgresql/postgresql/42.7.3</bundle>
+    <bundle start-level="80">wrap:mvn:com.zaxxer/HikariCP/7.0.2</bundle>
+    <bundle start-level="80">mvn:de.drremote.db/postgresql/1.0.0</bundle>
+  </feature>
+
+</features>

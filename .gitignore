@@ -1,0 +1,34 @@
+# Maven
+target/
+pom.xml.versionsBackup
+release.properties
+
+# Eclipse
+.classpath
+.project
+.settings/
+.metadata/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temp / backup
+*.tmp
+*.bak
+*~
+
+# Optional Maven wrapper cache artifacts
+.mvn/timing.properties
