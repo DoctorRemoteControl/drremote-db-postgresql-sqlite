@@ -105,12 +105,16 @@ Karaf feature name:
 * `de.drremote-db-postgresql`
 * `de.drremote-db-sqlite`
 
+Current workspace version:
+
+* `1.0.0-SNAPSHOT`
+
 ## Karaf Usage
 
 Add the features repository:
 
 ```sh
-feature:repo-add mvn:de.drremote.db/postgresql-features/1.0.0/xml/features
+feature:repo-add mvn:de.drremote.db/postgresql-features/1.0.0-SNAPSHOT/xml/features
 ```
 
 Install the feature:
@@ -124,7 +128,7 @@ SQLite:
 Add the features repository:
 
 ```sh
-feature:repo-add mvn:de.drremote.db/sqlite-features/1.0.0/xml/features
+feature:repo-add mvn:de.drremote.db/sqlite-features/1.0.0-SNAPSHOT/xml/features
 ```
 
 Install the feature:
@@ -194,6 +198,7 @@ db/
 
 * Configuration examples use placeholder credentials.
 * Do not use example passwords unchanged in production.
+* The current Maven project version in this repository is `1.0.0-SNAPSHOT`. Use that version in `feature:repo-add` until a release artifact is published.
 * This repository is functional, but not yet production-hardened.
 
 ## License

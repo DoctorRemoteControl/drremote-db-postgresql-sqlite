@@ -79,9 +79,11 @@ For SQLite, keep one migration limited to one SQL statement unless a dedicated s
 ## Using In Karaf
 
 ```text
-feature:repo-add mvn:de.drremote.db/sqlite-features/1.0.0/xml/features
+feature:repo-add mvn:de.drremote.db/sqlite-features/1.0.0-SNAPSHOT/xml/features
 feature:install de.drremote-db-sqlite
 ```
+
+Use the matching release version only after a non-snapshot artifact has actually been published.
 
 ## License
 
