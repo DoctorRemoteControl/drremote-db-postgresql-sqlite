@@ -1,6 +1,7 @@
 package de.drremote.db.postgresql.impl.migration;
 
 import de.drremote.db.postgresql.api.*;
+import de.drremote.db.postgresql.impl.jdbc.JdbcDbHandle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.annotations.*;
@@ -308,6 +309,9 @@ public final class MigrationServiceImpl implements MigrationService {
         String lockKey = pluginName + ":" + schemaName;
         try {
             lockConn = acquireMigrationLock(lockKey);
+            // Keep locking and migration work on the same borrowed connection.
+            // Reserving another pool connection here deadlocks a one-connection pool.
+            tm = migrationTransactions(lockConn);
 
             for (Migration m : sorted) {
                 if (m instanceof ScriptMigration sm) {
@@ -488,6 +492,8 @@ public final class MigrationServiceImpl implements MigrationService {
 
             handle.setSearchPath(schemaName);
             try (Statement st = conn.createStatement()) {
+                // setSearchPath validates the identifier before it is used in DDL.
+                st.execute("CREATE SCHEMA IF NOT EXISTS " + schemaName);
                 st.execute(sqlText);
             } catch (SQLException e) {
                 throw new IllegalStateException("Failed to apply JDBC migration v" + migration.getVersion(), e);
@@ -545,16 +551,62 @@ public final class MigrationServiceImpl implements MigrationService {
         }
     }
 
+    private TransactionManager migrationTransactions(Connection connection) {
+        return new TransactionManager() {
+            @Override
+            public <T> T inTransaction(TransactionCallback<T> callback) throws DbCoreException {
+                try {
+                    connection.setAutoCommit(false);
+                    try {
+                        try (Statement statement = connection.createStatement()) {
+                            statement.execute("SET search_path TO core, public");
+                        }
+                        T result = callback.doInTransaction(new JdbcDbHandle(connection));
+                        connection.commit();
+                        return result;
+                    } catch (Exception | Error failure) {
+                        try {
+                            connection.rollback();
+                        } catch (SQLException rollbackFailure) {
+                            failure.addSuppressed(rollbackFailure);
+                        }
+                        throw failure;
+                    }
+                } catch (Exception failure) {
+                    throw new DbCoreException("Migration transaction failed", failure);
+                }
+            }
+        };
+    }
+
     private Connection acquireMigrationLock(String lockKey) throws SQLException {
         if (dataSource == null) {
             throw new IllegalStateException("DataSource not bound");
         }
         Connection conn = dataSource.getConnection();
-        try (PreparedStatement ps = conn.prepareStatement("SELECT pg_advisory_lock(hashtext(?))")) {
-            ps.setString(1, lockKey);
-            ps.execute();
+        boolean locked = false;
+        try {
+            try (PreparedStatement ps = conn.prepareStatement("SELECT pg_advisory_lock(hashtext(?))")) {
+                ps.setString(1, lockKey);
+                ps.execute();
+                locked = true;
+            }
+            return conn;
+        } catch (SQLException | RuntimeException | Error failure) {
+            if (locked) {
+                try {
+                    releaseMigrationLock(conn, lockKey);
+                } catch (SQLException cleanupFailure) {
+                    if (cleanupFailure != failure) failure.addSuppressed(cleanupFailure);
+                }
+            }
+            try {
+                conn.close();
+            } catch (SQLException closeFailure) {
+                if (closeFailure != failure) failure.addSuppressed(closeFailure);
+            }
+            throw failure;
         }
-        return conn;
     }
 
     private void releaseMigrationLock(Connection conn, String lockKey) throws SQLException {

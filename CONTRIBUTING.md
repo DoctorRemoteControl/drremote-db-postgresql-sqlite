@@ -12,7 +12,9 @@ mvn install
 mvn -f examples/notes-client/pom.xml verify
 ```
 
-The main suite includes PostgreSQL transaction/URL/script-runner regression tests, SQLite migration/transaction tests, and real temporary DuckDB transaction/migration tests. It does not require a running PostgreSQL server. PostgreSQL's unit tests do not establish compatibility with every live server or workload.
+The main suite includes PostgreSQL transaction/URL/script-runner regression tests, SQLite migration/transaction tests, and real temporary DuckDB transaction/migration tests. It does not require a running PostgreSQL server by default. The PostgreSQL integration tests run when `DRREMOTE_TEST_POSTGRES_URL` is set; CI supplies a PostgreSQL 17 service and runs them on both Java versions. Those tests require `psql` and a dedicated test database, and cover fresh schemas, replay, one-connection pools, and mixed JDBC/script migrations.
+
+To run them locally, point `DRREMOTE_TEST_POSTGRES_URL` at a disposable database (for example `jdbc:postgresql://localhost:5432/drremote_test`) and set `DRREMOTE_TEST_POSTGRES_USER` and `DRREMOTE_TEST_POSTGRES_PASSWORD` as appropriate. The default test user/password are `postgres`. The tests create uniquely named schemas and remove their objects afterward; do not use a production database.
 
 Karaf's Maven plugin verifies all three feature descriptors against Java 17 and Karaf 4.4.11. The GitHub workflow repeats the build on Java 17 and 21. Live Karaf smoke checks are separate from the default Maven suite.
 

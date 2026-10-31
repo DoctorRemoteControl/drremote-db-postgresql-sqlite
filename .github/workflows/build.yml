@@ -14,6 +14,24 @@ jobs:
     name: Java ${{ matrix.java }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: drremote_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DRREMOTE_TEST_POSTGRES_URL: jdbc:postgresql://localhost:5432/drremote_test
+      DRREMOTE_TEST_POSTGRES_USER: postgres
+      DRREMOTE_TEST_POSTGRES_PASSWORD: postgres
     strategy:
       fail-fast: false
       matrix:

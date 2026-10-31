@@ -63,4 +63,4 @@ The configured `psqlConnectTimeoutSeconds` limits connection establishment. It d
 
 ## Validation
 
-The default Maven suite exercises nested transaction coordination, rollback/error paths, JDBC-to-psql URL conversion, and script command construction/execution with a temporary fake executable. It does not start a live PostgreSQL server. Validate your actual migrations against a dedicated test database and the PostgreSQL versions you support.
+The default Maven suite exercises nested transaction coordination, rollback/error paths, JDBC-to-psql URL conversion, and script command construction/execution with a temporary fake executable. It does not start a live PostgreSQL server. With `DRREMOTE_TEST_POSTGRES_URL` set, additional integration tests check schema placement, replay, a one-connection pool, and mixed JDBC/psql migrations against a dedicated database. CI supplies PostgreSQL 17; see [contributing](../CONTRIBUTING.md) for local setup. Validate your own migrations against the PostgreSQL versions you support.
