@@ -16,6 +16,16 @@ public interface ScriptMigration extends Migration {
     URL getScriptUrl();
 
     /**
+     * Whether psql should execute the script with --single-transaction.
+     *
+     * Override and return false for PostgreSQL commands that are not allowed
+     * inside an explicit transaction block.
+     */
+    default boolean isSingleTransaction() {
+        return true;
+    }
+
+    /**
      * Script migrations are NOT executed via JDBC SQL strings.
      * This method must never be used.
      */

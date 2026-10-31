@@ -15,7 +15,8 @@ import java.util.logging.Logger;
 @Component(
     service = DataSource.class,
     immediate = true,
-    configurationPid = "de.drremote.db.sqlite"
+    configurationPid = "de.drremote.db.sqlite",
+    property = "drremote.db.kind=sqlite"
 )
 public final class HikariDataSourceComponent implements DataSource {
 
@@ -68,6 +69,7 @@ public final class HikariDataSourceComponent implements DataSource {
 
         HikariConfig hc = new HikariConfig();
         hc.setJdbcUrl(jdbcUrl);
+        hc.setDriverClassName("org.sqlite.JDBC");
         hc.setMaximumPoolSize(maxPoolSize);
         hc.setMinimumIdle(minIdle);
         hc.setPoolName(poolName);
@@ -75,16 +77,22 @@ public final class HikariDataSourceComponent implements DataSource {
         hc.addDataSourceProperty("busy_timeout", busyTimeoutMs);
         hc.addDataSourceProperty("foreign_keys", foreignKeys);
 
-        closeDelegate();
-        delegate = new HikariDataSource(hc);
+        HikariDataSource newDelegate = new HikariDataSource(hc);
+        HikariDataSource oldDelegate = delegate;
+        delegate = newDelegate;
+        closeQuietly(oldDelegate);
     }
 
-    private void closeDelegate() {
+    private synchronized void closeDelegate() {
         HikariDataSource ds = delegate;
+        delegate = null;
+        closeQuietly(ds);
+    }
+
+    private static void closeQuietly(HikariDataSource ds) {
         if (ds != null) {
             try { ds.close(); } catch (Exception ignore) {}
         }
-        delegate = null;
     }
 
     private static String getString(Map<String, Object> props, String key, String def) {

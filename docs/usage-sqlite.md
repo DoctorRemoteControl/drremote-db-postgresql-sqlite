@@ -1,164 +1,62 @@
-## SQLite Usage Examples
+# SQLite usage
 
-SQLite does not support PostgreSQL-style schemas or `search_path`.
-Use clear table prefixes per plugin (e.g. `sqlcode_projects`).
+The service interfaces are in `de.drremote.db.sqlite.api`. Install/configure the bundle first; the [notes client](../examples/notes-client) is a complete, buildable OSGi example.
 
-### Example 1: DbCore as a lifecycle guarantee
+## Queries and transactions
+
+Reference `TransactionManager` from an OSGi Declarative Services component:
 
 ```java
-@Component(immediate = true)
-public class DbCoreGuard {
+@Reference
+private TransactionManager transactions;
 
-    @Reference
-    void bind(DbCore core) {
-        if (!core.isReady()) {
-            throw new IllegalStateException("DbCore not ready");
-        }
+public List<String> names() {
+    return transactions.inTransaction(db -> db.getQueryRunner().query(
+        "SELECT text FROM notes WHERE id > ? ORDER BY id",
+        row -> row.getString("text"), 0));
+}
+```
+
+Use `update(sql, parameters...)` for changes, `query(...)` for a list, and `queryOne(...)` for at most one result (`null` when absent; an exception for multiple results). Bind values using `?` parameters. Table/schema identifiers are part of the SQL text and are not value parameters.
+
+The outer transaction commits on success and rolls back on failure. Nested calls on the **same manager and thread** share the connection and transaction. An inner failure marks the transaction rollback-only even if the caller catches it. Other threads/manager instances do not inherit the transaction. Do not retain the callback's connection or handle after it returns; closing a `DbHandle` does not close the manager's connection.
+
+## Automatic migrations and readiness
+
+Publish an OSGi `PluginMigrationDescriptor` service with a stable plugin name and ordered version numbers. [NotesMigrations.java](../examples/notes-client/src/main/java/example/notes/NotesMigrations.java) creates a table in migration 1. The registry applies descriptors and records completed versions in `core_schema_migrations`.
+
+Wait for the plugin's readiness service before accessing its tables:
+
+```java
+@Reference(target = "(drremote.db.plugin=notes)")
+private DatabaseReady ready;
+```
+
+The marker is published only after the descriptor migrates successfully. [NotesRepository.java](../examples/notes-client/src/main/java/example/notes/NotesRepository.java) demonstrates this alongside a transaction reference.
+
+Regular migrations contain a single SQL statement. The current statement guard rejects embedded semicolons, including those inside SQL literals/comments; a final semicolon is allowed. Do not feed SQL scripts to this interface.
+
+## Atomic batches
+
+Implement `BatchMigration` when a version needs several explicit statements:
+
+```java
+new BatchMigration() {
+    public int getVersion() { return 2; }
+    public String getDescription() { return "Add note index"; }
+    public List<String> getStatements() {
+        return List.of(
+            "ALTER TABLE notes ADD COLUMN category TEXT",
+            "CREATE INDEX notes_category ON notes(category)"
+        );
     }
-}
+};
 ```
 
-### Example 2: Simple repository (read)
+All statements in that version commit or roll back together and create one tracking row. Each list entry must still be a single statement.
 
-```java
-@Component
-public class ProjectRepository {
+## Baselines and upgrades
 
-    @Reference
-    TransactionManager tx;
+`PluginMigrationDescriptor.getBaseline()` may return a `MigrationBaseline` representing the current schema through a particular version. It is used only for a plugin with no migration history; existing databases continue through incremental migrations. Keep the incremental history and add a new migration for every subsequent change. Baseline state is recorded in `core_schema_baselines`.
 
-    public List<String> findAllNames() {
-        return tx.inTransaction(h -> h.getQueryRunner().query(
-            "SELECT name FROM sqlcode_projects ORDER BY name",
-            rs -> rs.getString(1)
-        ));
-    }
-}
-```
-
-### Example 3: Insert / update
-
-```java
-@Component
-public class ProjectWriter {
-
-    @Reference
-    TransactionManager tx;
-
-    public void insert(String name) {
-        tx.inTransaction(h -> {
-            h.getQueryRunner().update(
-                "INSERT INTO sqlcode_projects(name) VALUES (?)",
-                name
-            );
-            return null;
-        });
-    }
-}
-```
-
-### Example 4: QueryOne
-
-```java
-public long countProjects() {
-    return tx.inTransaction(h -> h.getQueryRunner().queryOne(
-        "SELECT COUNT(*) FROM sqlcode_projects",
-        rs -> rs.getLong(1)
-    ));
-}
-```
-
-### Example 5: Domain mapping
-
-```java
-record Project(long id, String name) {}
-
-public List<Project> load() {
-    return tx.inTransaction(h -> h.getQueryRunner().query(
-        "SELECT project_id, name FROM sqlcode_projects",
-        rs -> new Project(
-            rs.getLong("project_id"),
-            rs.getString("name")
-        )
-    ));
-}
-```
-
-### Example 6: Explicit rollback
-
-```java
-public void failingOp() {
-    tx.inTransaction(h -> {
-        h.getQueryRunner().update("DELETE FROM sqlcode_projects");
-        throw new IllegalStateException("boom");
-    });
-}
-```
-
-### Example 7: Plugin migration descriptor
-
-```java
-public final class SqlcodeMigration implements PluginMigrationDescriptor {
-
-    @Override
-    public String getPluginName() {
-        return "sqlcode";
-    }
-
-    @Override
-    public List<Migration> getMigrations() {
-        return List.of(new Migration() {
-            @Override
-            public int getVersion() {
-                return 1;
-            }
-
-            @Override
-            public String getDescription() {
-                return "initial schema";
-            }
-
-            @Override
-            public String getSql() {
-                return "CREATE TABLE sqlcode_projects (project_id INTEGER PRIMARY KEY, name TEXT NOT NULL)";
-            }
-        });
-    }
-}
-```
-
-### Example 8: Run migration
-
-```java
-@Component(immediate = true)
-public class MigrationRunner {
-
-    @Reference
-    void run(MigrationService ms) {
-        ms.migratePlugin(new SqlcodeMigration());
-    }
-}
-```
-
-### Example 9: Service layer on top of repository
-
-```java
-@Component
-public class ProjectService {
-
-    @Reference
-    ProjectRepository repo;
-
-    public boolean hasProjects() {
-        return !repo.findAllNames().isEmpty();
-    }
-}
-```
-
-### Example 10: Pure utility using TransactionCallback
-
-```java
-public <T> T withSqlcode(TransactionManager tx, TransactionCallback<T> cb) {
-    return tx.inTransaction(h -> cb.doInTransaction(h));
-}
-```
+Do not edit applied migration SQL. Replay skips matching versions, and changed SQL is reported as migration drift when the previous SQL was recorded. The test suite covers replay, atomic rollback, baseline adoption, incremental upgrades, and drift detection.

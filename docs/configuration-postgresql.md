@@ -1,74 +1,41 @@
-## Full Configuration Example (Karaf)
+# PostgreSQL configuration
 
-You can configure the PostgreSQL core completely through **a single** configuration (PID `de.drremote.db.postgresql`).
+ConfigAdmin PID: `de.drremote.db.postgresql`. In Karaf, use `etc/de.drremote.db.postgresql.cfg`.
 
-> This file covers PostgreSQL only. For SQLite configuration, see `docs/configuration-sqlite.md`.
+Create a PostgreSQL database and user before installing the feature. For example, an administrator can use PostgreSQL's `createuser --pwprompt app_user` and `createdb --owner=app_user appdb`. Run these against the intended PostgreSQL server with appropriate administrative access.
 
-> The values below are placeholders only. Do not use them unchanged in production.
-
-### Option 1: `etc/de.drremote.db.postgresql.cfg` file (recommended)
-
-Path:
-
-- `$KARAF_HOME/etc/de.drremote.db.postgresql.cfg`
-
-Content (example using database `appdb` and user `karaf_postgresql`):
+Copy the [example configuration](../examples/de.drremote.db.postgresql.cfg.example) and replace its password placeholder:
 
 ```properties
-#############################################
-# DB.POSTGRESQL Config (PID: de.drremote.db.postgresql)
-#############################################
-
-# --- JDBC / PostgreSQL ---
 jdbcUrl=jdbc:postgresql://localhost:5432/appdb
-username=karaf_postgresql
-password=change_me
-
-# --- HikariCP Pool ---
+username=app_user
+password=REPLACE_WITH_YOUR_DATABASE_PASSWORD
 poolName=db-postgresql-pool
 maxPoolSize=10
 minIdle=1
-
-#############################################
-# Optional: legacy keys (only if needed)
-# (these are only used if the "new" keys
-#  above are NOT set)
-#############################################
-# dbcore.jdbcUrl=jdbc:postgresql://localhost:5432/appdb
-# dbcore.username=karaf_postgresql
-# dbcore.password=change_me
+migrationsEnabled=true
+psqlExecutable=psql
+psqlConnectTimeoutSeconds=30
 ```
 
-> After saving the file, Karaf will usually pick it up automatically through ConfigAdmin.
-> Otherwise, restart Karaf.
+| Property | Default / requirement |
+| --- | --- |
+| `jdbcUrl` | Required for the data source. PostgreSQL JDBC URL. |
+| `username` | Required for the data source. |
+| `password` | Set the database user's actual password for password authentication. |
+| `poolName` | `db-postgresql-pool` |
+| `maxPoolSize` | `10` |
+| `minIdle` | `1` |
+| `migrationsEnabled` | `true`; `false` disables automatic and explicit migrations. |
+| `psqlExecutable` | `psql`; may be an absolute executable path. |
+| `psqlConnectTimeoutSeconds` | `30`; connection timeout for `psql`, not a query execution timeout. |
 
----
+`jdbcUrl`, `username`, `password`, `migrationsEnabled`, `psqlExecutable`, and `psqlConnectTimeoutSeconds` also support their legacy `dbcore.`-prefixed names. Prefer the short names. Supply a consistent JDBC/migration configuration rather than relying on the migration component's legacy defaults.
 
-### Option 2: Configure everything through the Karaf shell (`config:edit`)
+The migration service creates the `core` schema and its tracking tables and creates plugin schemas as needed. The database user therefore needs suitable schema creation/object privileges. The JDBC data source does not create the database or database role.
 
-```sh
-config:edit de.drremote.db.postgresql
+`psql` is needed only for `ScriptMigration` descriptors and must be installed on the machine running the bundle. Script execution passes the password in the child process environment, not in the command-line arguments. Protect your actual configuration using your runtime's normal credential handling and file permissions.
 
-# JDBC
-config:property-set jdbcUrl jdbc:postgresql://localhost:5432/appdb
-config:property-set username karaf_postgresql
-config:property-set password change_me
+ConfigAdmin applies changes dynamically. Coordinate connection/pool changes and verify migration state before enabling a previously disabled migration service.
 
-# HikariCP
-config:property-set poolName db-postgresql-pool
-config:property-set maxPoolSize 10
-config:property-set minIdle 1
-
-config:update
-```
-
----
-
-### Optional: Verify the configuration (after setting it)
-
-```sh
-config:list "(service.pid=de.drremote.db.postgresql)"
-
-config:edit de.drremote.db.postgresql
-config:property-list
-```
+See [installation](installation.md) and [usage](usage-postgresql.md).

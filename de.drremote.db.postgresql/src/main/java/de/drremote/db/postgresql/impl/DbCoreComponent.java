@@ -1,8 +1,12 @@
 package de.drremote.db.postgresql.impl;
 
 import de.drremote.db.postgresql.api.DbCore;
+import de.drremote.db.postgresql.api.TransactionManager;
 import org.osgi.service.component.annotations.*;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.Statement;
 import java.util.logging.Logger;
 
 @Component(
@@ -13,10 +17,34 @@ public final class DbCoreComponent implements DbCore {
 
     private static final Logger LOG = Logger.getLogger(DbCoreComponent.class.getName());
 
+    private DataSource dataSource;
+    private TransactionManager transactionManager;
+
     private volatile boolean ready = false;
+
+    @Reference(target = "(drremote.db.kind=postgresql)")
+    void bindDataSource(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+
+    @Reference
+    void bindTransactionManager(TransactionManager transactionManager) {
+        this.transactionManager = transactionManager;
+    }
 
     @Activate
     void activate() {
+        if (dataSource == null || transactionManager == null) {
+            throw new IllegalStateException("DbCore requires DataSource and TransactionManager");
+        }
+
+        try (Connection conn = dataSource.getConnection();
+            Statement st = conn.createStatement()) {
+            st.execute("SELECT 1");
+        } catch (Exception e) {
+            throw new IllegalStateException("Database connectivity check failed", e);
+        }
+
         ready = true;
         LOG.info("Core activated");
     }

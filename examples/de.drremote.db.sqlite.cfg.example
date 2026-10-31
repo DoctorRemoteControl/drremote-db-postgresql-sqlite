@@ -1,0 +1,7 @@
+# Copy to KARAF_HOME/etc/de.drremote.db.sqlite.cfg before installing the feature.
+jdbcUrl=jdbc:sqlite:${karaf.data}/drremote.sqlite
+poolName=db-sqlite-pool
+maxPoolSize=1
+minIdle=1
+busyTimeoutMs=5000
+foreignKeys=true

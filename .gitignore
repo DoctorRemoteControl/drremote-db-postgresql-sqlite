@@ -32,3 +32,5 @@ Thumbs.db
 
 # Optional Maven wrapper cache artifacts
 .mvn/timing.properties
+# Local agent execution records
+.superpowers/
