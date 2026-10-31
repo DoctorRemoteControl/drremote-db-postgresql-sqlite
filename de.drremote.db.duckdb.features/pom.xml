@@ -5,7 +5,21 @@
   <parent><groupId>de.drremote</groupId><artifactId>db-parent</artifactId><version>1.1.0-SNAPSHOT</version></parent>
   <groupId>de.drremote.db</groupId><artifactId>duckdb-features</artifactId><packaging>feature</packaging>
   <name>DrRemote DB duckdb Karaf features</name>
+  <dependencies>
+    <dependency><groupId>de.drremote.db</groupId><artifactId>duckdb</artifactId><version>${project.version}</version></dependency>
+  </dependencies>
   <build><plugins>
-    <plugin><groupId>org.apache.karaf.tooling</groupId><artifactId>karaf-maven-plugin</artifactId><extensions>true</extensions></plugin>
+    <plugin><groupId>org.apache.karaf.tooling</groupId><artifactId>karaf-maven-plugin</artifactId><extensions>true</extensions>
+      <configuration>
+        <enableGeneration>true</enableGeneration>
+        <primaryFeatureName>de.drremote-db-duckdb</primaryFeatureName>
+        <includeTransitiveDependency>false</includeTransitiveDependency>
+        <descriptors><descriptor>file:${project.build.directory}/feature/feature.xml</descriptor></descriptors>
+        <features><feature>de.drremote-db-duckdb</feature></features>
+        <framework><feature>framework</feature></framework>
+        <karafVersion>${karaf.version}</karafVersion>
+        <javase>${maven.compiler.release}</javase>
+      </configuration>
+    </plugin>
   </plugins></build>
 </project>

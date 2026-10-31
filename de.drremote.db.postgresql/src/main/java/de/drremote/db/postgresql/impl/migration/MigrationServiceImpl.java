@@ -77,7 +77,7 @@ public final class MigrationServiceImpl implements MigrationService {
     }
 
     private void applyConfig(Map<String, Object> props) {
-        // bevorzugt kurze Keys, fallback auf alte dotted Keys
+        // Prefer short keys and fall back to the legacy dotted keys.
         this.jdbcUrl  = getString2(props, "jdbcUrl",  "dbcore.jdbcUrl",  this.jdbcUrl);
         this.username = getString2(props, "username", "dbcore.username", this.username);
         this.password = getString2(props, "password", "dbcore.password", this.password);

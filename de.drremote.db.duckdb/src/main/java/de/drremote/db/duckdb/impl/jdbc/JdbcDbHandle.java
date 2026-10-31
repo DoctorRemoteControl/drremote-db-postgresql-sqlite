@@ -30,4 +30,3 @@ public final class JdbcDbHandle implements DbHandle {
         // no-op: lifecycle is managed by JdbcTransactionManager
     }
 }
-
