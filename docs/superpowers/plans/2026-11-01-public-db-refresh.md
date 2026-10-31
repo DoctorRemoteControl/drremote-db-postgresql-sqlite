@@ -73,7 +73,7 @@
 
 **Interfaces:** Consumes all earlier tasks. Produces a reviewed, tested public branch suitable for GitHub review.
 
-- [ ] Build and install from a standalone source export with empty settings and a fresh local Maven cache, so no private artifacts or sibling projects can mask missing dependencies.
-- [ ] Inspect test reports, artifacts, feature descriptors, document references, diff whitespace, publication contents, and ancestry.
-- [ ] Request a fresh whole-branch review against the spec and this plan. Fix important findings with a failing reproduction followed by passing verification.
-- [ ] Prepare GitHub branch/PR details around the final result; publish only the reviewed public branch under the user's authorization. Do not merge, force-push, tag a release, or change the private origin.
+- [x] Build and install from a standalone source export with empty settings and a fresh local Maven cache, so no private artifacts or sibling projects can mask missing dependencies.
+- [x] Inspect test reports, artifacts, feature descriptors, document references, diff whitespace, publication contents, and ancestry.
+- [x] Request a fresh whole-branch review against the spec and this plan. Fix important findings with a failing reproduction followed by passing verification.
+- [x] Prepare the reviewed public branch and PR description for GitHub. The finishing step publishes that branch under the user's authorization; it must not merge, force-push, tag a release, or change the private origin.
