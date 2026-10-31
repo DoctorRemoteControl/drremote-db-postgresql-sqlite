@@ -4,6 +4,7 @@ import de.drremote.db.postgresql.api.DbCoreException;
 import de.drremote.db.postgresql.api.QueryRunner;
 import de.drremote.db.postgresql.api.RowMapper;
 import java.sql.*;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -54,9 +55,17 @@ public int update(String sql, Object... params) throws DbCoreException {
         PreparedStatement ps = connection.prepareStatement(sql);
         if (params != null) {
             for (int i = 0; i < params.length; i++) {
-                ps.setObject(i + 1, params[i]);
+                setParameter(ps, i + 1, params[i]);
             }
         }
         return ps;
+    }
+
+    private static void setParameter(PreparedStatement ps, int index, Object value) throws SQLException {
+        if (value instanceof Instant instant) {
+            ps.setTimestamp(index, Timestamp.from(instant));
+            return;
+        }
+        ps.setObject(index, value);
     }
 }

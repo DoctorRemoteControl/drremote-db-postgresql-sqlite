@@ -1,67 +1,29 @@
-## SQLite Configuration Example (Karaf)
+# SQLite configuration
 
-Configure the SQLite core through a single configuration (PID `de.drremote.db.sqlite`).
+ConfigAdmin PID: `de.drremote.db.sqlite`. In Karaf, use `etc/de.drremote.db.sqlite.cfg`.
 
-> The values below are placeholders only. Do not use them unchanged in production.
-
-### Option 1: `etc/de.drremote.db.sqlite.cfg` file (recommended)
-
-Path:
-
-- `$KARAF_HOME/etc/de.drremote.db.sqlite.cfg`
-
-Content:
+Copy the [complete example](../examples/de.drremote.db.sqlite.cfg.example) before installing the feature:
 
 ```properties
-#############################################
-# DB.SQLITE Config (PID: de.drremote.db.sqlite)
-#############################################
-
-# --- JDBC / SQLite ---
-jdbcUrl=jdbc:sqlite:${karaf.data}/drremote.db
-
-# --- HikariCP Pool (SQLite must be 1/1) ---
+jdbcUrl=jdbc:sqlite:${karaf.data}/drremote.sqlite
 poolName=db-sqlite-pool
 maxPoolSize=1
 minIdle=1
-
-# --- SQLite specifics ---
 busyTimeoutMs=5000
 foreignKeys=true
 ```
 
-> After saving the file, Karaf will usually pick it up automatically through ConfigAdmin.
-> Otherwise, restart Karaf.
+| Property | Default / requirement |
+| --- | --- |
+| `jdbcUrl` | Required; JDBC SQLite URL. The process needs access to the parent directory/file. |
+| `poolName` | `db-sqlite-pool` |
+| `maxPoolSize` | Must be `1` |
+| `minIdle` | Must be `1` |
+| `busyTimeoutMs` | `5000` milliseconds |
+| `foreignKeys` | `true` |
 
----
+`${karaf.data}` is expanded by Karaf configuration handling. In another OSGi runtime, provide an actual writable path or that runtime's supported property substitution.
 
-### Option 2: Configure everything through the Karaf shell (`config:edit`)
+SQLite is embedded; no server or password is required. Avoid two application instances writing the same file. Configuration updates replace the pool, so coordinate changes with callers.
 
-```sh
-config:edit de.drremote.db.sqlite
-
-# JDBC
-config:property-set jdbcUrl jdbc:sqlite:${karaf.data}/drremote.db
-
-# HikariCP
-config:property-set poolName db-sqlite-pool
-config:property-set maxPoolSize 1
-config:property-set minIdle 1
-
-# SQLite specifics
-config:property-set busyTimeoutMs 5000
-config:property-set foreignKeys true
-
-config:update
-```
-
----
-
-### Optional: Verify the configuration (after setting it)
-
-```sh
-config:list "(service.pid=de.drremote.db.sqlite)"
-
-config:edit de.drremote.db.sqlite
-config:property-list
-```
+See [installation](installation.md) and [usage](usage-sqlite.md).

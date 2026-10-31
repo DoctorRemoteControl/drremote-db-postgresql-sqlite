@@ -1,8 +1,8 @@
 package de.drremote.db.postgresql.impl.jdbc;
 
+import de.drremote.db.postgresql.api.DbCoreException;
 import de.drremote.db.postgresql.api.DbHandle;
 import de.drremote.db.postgresql.api.QueryRunner;
-import de.drremote.db.postgresql.api.DbCoreException;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -30,13 +30,13 @@ public final class JdbcDbHandle implements DbHandle {
 
     @Override
     public void setSearchPath(String schema) {
-        if (schema == null || !schema.matches("[A-Za-z0-9_]+")) {
-            throw new IllegalArgumentException("Invalid schema name: " + schema);
+        if (schema == null || !schema.matches("[A-Za-z_][A-Za-z0-9_]*")) {
+            throw new DbCoreException("Invalid schema name: " + schema);
         }
         try (Statement st = connection.createStatement()) {
             st.execute("SET search_path TO " + schema + ", core, public");
         } catch (SQLException e) {
-            throw new RuntimeException(
+            throw new DbCoreException(
                 "Failed to set search_path to schema '" + schema + "'", e
             );
         }
@@ -44,12 +44,6 @@ public final class JdbcDbHandle implements DbHandle {
 
     @Override
     public void close() {
-        try {
-            if (!connection.isClosed()) {
-                connection.close();
-            }
-        } catch (SQLException e) {
-            throw new DbCoreException("Failed to close JDBC connection", e);
-        }
+        // no-op: lifecycle is managed by JdbcTransactionManager
     }
 }

@@ -1,0 +1,64 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Java ${{ matrix.java }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: drremote_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DRREMOTE_TEST_POSTGRES_URL: jdbc:postgresql://localhost:5432/drremote_test
+      DRREMOTE_TEST_POSTGRES_USER: postgres
+      DRREMOTE_TEST_POSTGRES_PASSWORD: postgres
+    strategy:
+      fail-fast: false
+      matrix:
+        java: ['17', '21']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+      - name: Build, test, and verify Karaf features
+        run: mvn --batch-mode --no-transfer-progress clean install
+      - name: Build the SQLite example
+        run: mvn --batch-mode --no-transfer-progress -f examples/notes-client/pom.xml verify
+      - name: Upload bundles, feature descriptors, and example
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: drremote-db-java-${{ matrix.java }}
+          if-no-files-found: error
+          path: |
+            de.drremote.db.*/target/*.jar
+            de.drremote.db.*.features/target/feature/feature.xml
+            examples/notes-client/target/*.jar
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-reports-java-${{ matrix.java }}
+          if-no-files-found: ignore
+          path: de.drremote.db.*/target/surefire-reports/

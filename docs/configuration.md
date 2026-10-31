@@ -1,6 +1,7 @@
-## Configuration Examples
+# Configuration
 
-This repository now contains **two** database modules. Use the matching configuration guide:
+- [PostgreSQL](configuration-postgresql.md)
+- [SQLite](configuration-sqlite.md)
+- [DuckDB](configuration-duckdb.md)
 
-- PostgreSQL: `docs/configuration-postgresql.md`
-- SQLite: `docs/configuration-sqlite.md`
+See [installation](installation.md) for the source build and Karaf setup.

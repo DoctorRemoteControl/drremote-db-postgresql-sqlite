@@ -1,11 +1,9 @@
 package de.drremote.db.sqlite.impl.jdbc;
 
-import de.drremote.db.sqlite.api.DbCoreException;
 import de.drremote.db.sqlite.api.DbHandle;
 import de.drremote.db.sqlite.api.QueryRunner;
 
 import java.sql.Connection;
-import java.sql.SQLException;
 
 public final class JdbcDbHandle implements DbHandle {
 
