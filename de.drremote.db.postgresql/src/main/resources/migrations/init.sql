@@ -24,22 +24,26 @@
 \echo
 \echo '==[1/3] Create role (if missing) =='
 
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'role') THEN
-    EXECUTE format('CREATE ROLE %I LOGIN PASSWORD %L', :'role', :'role_password');
-  END IF;
-END $$;
+SELECT format(
+  'CREATE ROLE %I LOGIN PASSWORD %L',
+  :'role',
+  :'role_password'
+)
+WHERE NOT EXISTS (
+  SELECT 1 FROM pg_roles WHERE rolname = :'role'
+)\gexec
 
 \echo
 \echo '==[2/3] Create database (if missing) =='
 
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = :'dbname') THEN
-    EXECUTE format('CREATE DATABASE %I OWNER %I', :'dbname', :'role');
-  END IF;
-END $$;
+SELECT format(
+  'CREATE DATABASE %I OWNER %I',
+  :'dbname',
+  :'role'
+)
+WHERE NOT EXISTS (
+  SELECT 1 FROM pg_database WHERE datname = :'dbname'
+)\gexec
 
 \echo
 \echo '== Connect to target DB =='

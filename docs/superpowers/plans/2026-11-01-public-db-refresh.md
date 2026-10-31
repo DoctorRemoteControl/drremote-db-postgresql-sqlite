@@ -35,13 +35,13 @@
 
 **Interfaces:** Consumes the reviewed development database source. Produces six independently public Maven modules at `1.1.0-SNAPSHOT`, with existing API package names and passing tests.
 
-- [ ] Record a baseline build with empty Maven settings and a fresh cache.
-- [ ] Import existing PostgreSQL/SQLite regression tests first; run them against the old public implementation and record expected failure where newer APIs/behavior are absent.
-- [ ] Import the selected current Java sources and SQL resources, retaining module directories but adapting their POM artifact IDs to the public names.
-- [ ] Centralize shared Java/dependency/plugin properties in the parent. Ensure DuckDB runs JUnit tests and the public reactor contains no installations module.
-- [ ] Add focused DuckDB tests for real JDBC commit/rollback and migration replay; verify missing DuckDB implementation fails before importing that module's production code.
-- [ ] Run the whole reactor tests using the isolated Maven settings/cache; inspect reports and generated OSGi manifests.
-- [ ] Commit the independently buildable reactor and tests.
+- [x] Record a baseline build with empty Maven settings and a fresh cache.
+- [x] Import existing PostgreSQL/SQLite regression tests first; run them against the old public implementation and record expected failure where newer APIs/behavior are absent.
+- [x] Import the selected current Java sources and SQL resources, retaining module directories but adapting their POM artifact IDs to the public names.
+- [x] Centralize shared Java/dependency/plugin properties in the parent. Ensure DuckDB runs JUnit tests and the public reactor contains no installations module.
+- [x] Add focused DuckDB tests for real JDBC commit/rollback and migration replay; verify missing DuckDB implementation fails before importing that module's production code.
+- [x] Run the whole reactor tests using the isolated Maven settings/cache; inspect reports and generated OSGi manifests.
+- [x] Commit the independently buildable reactor and tests.
 
 ### Task 2: Matching Karaf installation descriptors
 

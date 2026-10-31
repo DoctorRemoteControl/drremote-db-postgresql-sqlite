@@ -15,7 +15,8 @@ import java.util.logging.Logger;
 @Component(
     service = DataSource.class,
     immediate = true,
-    configurationPid = "de.drremote.db.postgresql"
+    configurationPid = "de.drremote.db.postgresql",
+    property = "drremote.db.kind=postgresql"
 )
 public final class HikariDataSourceComponent implements DataSource {
 
@@ -50,10 +51,9 @@ public final class HikariDataSourceComponent implements DataSource {
     }
 
     private synchronized void reconfigure(Map<String, Object> props) {
-        // defaults
-        String jdbcUrl = getString(props, "jdbcUrl", "jdbc:postgresql://localhost:5432/postgres");
-        String username = getString(props, "username", "postgres");
-        String password = getString(props, "password", "postgres");
+        String jdbcUrl = getString(props, "jdbcUrl", null);
+        String username = getString(props, "username", null);
+        String password = getString(props, "password", null);
         int maxPoolSize = getInt(props, "maxPoolSize", 10);
         int minIdle = getInt(props, "minIdle", 1);
         String poolName = getString(props, "poolName", "db-postgresql-pool");
@@ -63,24 +63,38 @@ public final class HikariDataSourceComponent implements DataSource {
         username = getString(props, "username", getString(props, "dbcore.username", username));
         password = getString(props, "password", getString(props, "dbcore.password", password));
 
+        if (jdbcUrl == null || jdbcUrl.isBlank()) {
+            throw new IllegalStateException("Missing required config property: jdbcUrl");
+        }
+        if (username == null || username.isBlank()) {
+            throw new IllegalStateException("Missing required config property: username");
+        }
+
         HikariConfig hc = new HikariConfig();
         hc.setJdbcUrl(jdbcUrl);
+        hc.setDriverClassName("org.postgresql.Driver");
         hc.setUsername(username);
         hc.setPassword(password);
         hc.setMaximumPoolSize(maxPoolSize);
         hc.setMinimumIdle(minIdle);
         hc.setPoolName(poolName);
 
-        closeDelegate();
-        delegate = new HikariDataSource(hc);
+        HikariDataSource newDelegate = new HikariDataSource(hc);
+        HikariDataSource oldDelegate = delegate;
+        delegate = newDelegate;
+        closeQuietly(oldDelegate);
     }
 
-    private void closeDelegate() {
+    private synchronized void closeDelegate() {
         HikariDataSource ds = delegate;
+        delegate = null;
+        closeQuietly(ds);
+    }
+
+    private static void closeQuietly(HikariDataSource ds) {
         if (ds != null) {
             try { ds.close(); } catch (Exception ignore) {}
         }
-        delegate = null;
     }
 
     private static String getString(Map<String, Object> props, String key, String def) {
