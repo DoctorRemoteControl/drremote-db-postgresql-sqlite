@@ -6,7 +6,8 @@
 - Refresh PostgreSQL and SQLite transaction handling. Nested calls on the same transaction manager/thread join the outer transaction; a nested failure marks it rollback-only even if caught.
 - Add SQLite atomic batch migrations, optional baselines for new installations, migration SQL drift detection, and automatic migration readiness services.
 - Refresh PostgreSQL migration coordination, JDBC URL conversion, and `psql` execution. Script migrations default to a single transaction and stop on SQL errors.
-- Add regression tests, Java 17/21 CI, actual Karaf feature resolution checks, and a buildable SQLite client example.
+- Fix PostgreSQL JDBC migration schema creation and run migration locking/work on one borrowed connection. Failed lock acquisition releases its connection.
+- Add regression tests, live PostgreSQL CI, Java 17/21 builds, actual Karaf feature resolution checks, and a buildable SQLite client example.
 - Correct the source-build and installation instructions. The former public Maven repository is retired; project artifacts must be built locally.
 
 ### Upgrading from the existing public source
