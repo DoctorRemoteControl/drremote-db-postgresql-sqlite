@@ -1,179 +1,66 @@
-## Example 1: DbCore as a lifecycle guarantee
+# PostgreSQL usage
 
-> This file covers PostgreSQL only. For SQLite usage examples, see `docs/usage-sqlite.md`.
+The service interfaces are in `de.drremote.db.postgresql.api`. [Configure a running database](configuration-postgresql.md) before installing the feature.
+
+## Queries and transactions
+
+Reference `TransactionManager` from an OSGi Declarative Services component:
 
 ```java
-@Component(immediate = true)
-public class DbCoreGuard {
+@Reference
+private TransactionManager transactions;
 
-    @Reference
-    void bind(DbCore core) {
-        if (!core.isReady()) {
-            throw new IllegalStateException("DbCore not ready");
-        }
-    }
+public List<String> names() {
+    return transactions.inTransaction(db -> db.getQueryRunner().query(
+        "SELECT name FROM app.customer WHERE id > ? ORDER BY id",
+        row -> row.getString("name"), 0));
 }
 ```
 
-## Example 2: Simple repository (read)
+`query(...)` returns a list, `queryOne(...)` returns a single result or `null` (and rejects multiple results), and `update(...)` returns the affected-row count. Bind values with `?`; identifiers must be part of the SQL text.
+
+An outer callback commits once on success and rolls back on failure. Nested calls on the same manager/thread join that transaction. An inner failure marks it rollback-only even when caught. Transaction context is not propagated across threads or manager instances. Do not retain connections/handles beyond the callback.
+
+## Plugin migrations
+
+Publish an OSGi `PluginMigrationDescriptor` service implementing:
 
 ```java
-@Component
-public class ProjectRepository {
+String getPluginName();
+String getSchemaName();
+List<Migration> getMigrations();
+```
 
-    @Reference
-    TransactionManager tx;
+Use a stable plugin name and schema name and increasing version numbers. A `Migration` supplies `getVersion()`, `getDescription()`, and `getSql()`. The migration service creates the plugin schema, applies JDBC migrations, and records versions centrally in `core.schema_migrations`.
 
-    public List<String> findAllNames() {
-        return tx.inTransaction(h -> {
-            h.setSearchPath("sqlcode");
-            return h.getQueryRunner().query(
-                "SELECT name FROM projects ORDER BY name",
-                rs -> rs.getString(1)
-            );
-        });
-    }
+Regular JDBC migration text is passed to the JDBC driver as one execution. Prefer one SQL statement per version, and use script migrations for actual `psql` scripts. Do not mix unmanaged schema modifications into the recorded migration history.
+
+A consumer can wait for successful plugin migration through:
+
+```java
+@Reference(target = "(drremote.db.plugin=my-plugin)")
+private DatabaseReady ready;
+```
+
+`DbCore` indicates the core service is active. `DatabaseReady` identifies successful migration for a specific plugin; the two services serve different purposes.
+
+## Script migrations
+
+Implement `ScriptMigration` when a migration needs a resource URL, `psql` commands, or a SQL script:
+
+```java
+@Override
+public URL getScriptUrl() {
+    return getClass().getResource("/migrations/V2__customer.sql");
 }
 ```
 
-## Example 3: Insert / update
+The resource must exist in your client bundle. The runner loads the script into a temporary file, sets the plugin search path in the same `psql` session, stops on SQL errors, ignores `.psqlrc`, and never prompts for a password.
 
-```java
-@Component
-public class ProjectWriter {
+`ScriptMigration.isSingleTransaction()` defaults to `true`. Override it to `false` only when the script contains commands that PostgreSQL forbids in a transaction. That opt-out removes whole-script atomicity; design the script so a partial failure can be recovered safely.
 
-    @Reference
-    TransactionManager tx;
+The configured `psqlConnectTimeoutSeconds` limits connection establishment. It does not impose a whole-script execution timeout. JDBC migrations and an external `psql` process do not share one JDBC transaction.
 
-    public void insert(String name) {
-        tx.inTransaction(h -> {
-            h.setSearchPath("sqlcode");
-            h.getQueryRunner().update(
-                "INSERT INTO projects(name) VALUES (?)",
-                name
-            );
-            return null;
-        });
-    }
-}
-```
+## Validation
 
-## Example 4: QueryOne
-
-```java
-public long countProjects() {
-    return tx.inTransaction(h -> {
-        h.setSearchPath("sqlcode");
-        return h.getQueryRunner().queryOne(
-            "SELECT COUNT(*) FROM projects",
-            rs -> rs.getLong(1)
-        );
-    });
-}
-```
-
-## Example 5: Domain mapping
-
-```java
-record Project(long id, String name) {}
-
-public List<Project> load() {
-    return tx.inTransaction(h -> {
-        h.setSearchPath("sqlcode");
-        return h.getQueryRunner().query(
-            "SELECT project_id, name FROM projects",
-            rs -> new Project(
-                rs.getLong("project_id"),
-                rs.getString("name")
-            )
-        );
-    });
-}
-```
-
-## Example 6: Explicit rollback
-
-```java
-public void failingOp() {
-    tx.inTransaction(h -> {
-        h.getQueryRunner().update("DELETE FROM projects");
-        throw new IllegalStateException("boom");
-    });
-}
-```
-
-## Example 7: Plugin migration descriptor
-
-```java
-public final class SqlcodeMigration implements PluginMigrationDescriptor {
-
-    @Override
-    public String getPluginName() {
-        return "sqlcode";
-    }
-
-    @Override
-    public String getSchemaName() {
-        return "sqlcode";
-    }
-
-    @Override
-    public List<Migration> getMigrations() {
-        return List.of(new ScriptMigration() {
-            @Override
-            public int getVersion() {
-                return 1;
-            }
-
-            @Override
-            public String getDescription() {
-                return "initial schema";
-            }
-
-            @Override
-            public URL getScriptUrl() {
-                return getClass().getResource("/migrations/sqlcode/V1__init.sql");
-            }
-        });
-    }
-}
-```
-
-## Example 8: Run migration
-
-```java
-@Component(immediate = true)
-public class MigrationRunner {
-
-    @Reference
-    void run(MigrationService ms) {
-        ms.migratePlugin(new SqlcodeMigration());
-    }
-}
-```
-
-## Example 9: Service layer on top of repository
-
-```java
-@Component
-public class ProjectService {
-
-    @Reference
-    ProjectRepository repo;
-
-    public boolean hasProjects() {
-        return !repo.findAllNames().isEmpty();
-    }
-}
-```
-
-## Example 10: Pure utility using TransactionCallback
-
-```java
-public <T> T withSqlcode(TransactionManager tx, TransactionCallback<T> cb) {
-    return tx.inTransaction(h -> {
-        h.setSearchPath("sqlcode");
-        return cb.doInTransaction(h);
-    });
-}
-```
+The default Maven suite exercises nested transaction coordination, rollback/error paths, JDBC-to-psql URL conversion, and script command construction/execution with a temporary fake executable. It does not start a live PostgreSQL server. Validate your actual migrations against a dedicated test database and the PostgreSQL versions you support.
