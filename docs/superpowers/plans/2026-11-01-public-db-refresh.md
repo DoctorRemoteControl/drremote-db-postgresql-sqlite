@@ -61,11 +61,11 @@
 
 **Interfaces:** Consumes Tasks 1–2 commands/artifacts. Produces English source-build, usage, compatibility, contribution, and validation instructions, plus automated JDK 17/21 builds.
 
-- [ ] Document source installation, unavailable hosted DrRemote artifacts, local Maven/Karaf resolution, configuration, and a minimal SQLite example.
-- [ ] Import/adapt public database API examples, explain migration limits and compatibility changes, and remove private Runtime references.
-- [ ] Add a read-only CI workflow using pinned actions, JDK 17/21 verification, and uploaded JAR/feature outputs; no publishing credentials.
-- [ ] Validate local links, sample paths, versions, workflow syntax, and API examples against the implementation.
-- [ ] Commit public documentation and CI.
+- [x] Document source installation, unavailable hosted DrRemote artifacts, local Maven/Karaf resolution, configuration, and a minimal SQLite example.
+- [x] Import/adapt public database API examples, explain migration limits and compatibility changes, and remove private Runtime references.
+- [x] Add a read-only CI workflow using pinned actions, JDK 17/21 verification, and uploaded JAR/feature outputs; no publishing credentials.
+- [x] Validate local links, sample paths, versions, workflow syntax, and API examples against the implementation.
+- [x] Commit public documentation and CI.
 
 ### Task 4: Clean verification, review, and GitHub preparation
 
