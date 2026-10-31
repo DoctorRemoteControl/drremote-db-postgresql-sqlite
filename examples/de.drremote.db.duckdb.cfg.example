@@ -1,0 +1,6 @@
+# Copy to KARAF_HOME/etc/de.drremote.db.duckdb.cfg before installing the feature.
+jdbcUrl=jdbc:duckdb:${karaf.data}/drremote.duckdb
+poolName=db-duckdb-pool
+maxPoolSize=1
+minIdle=1
+readOnly=false

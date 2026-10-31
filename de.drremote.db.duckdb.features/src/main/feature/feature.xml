@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<features xmlns="http://karaf.apache.org/xmlns/features/v1.6.0" name="drremote-db-duckdb-${project.version}">
+  <repository>mvn:org.apache.karaf.features/standard/${karaf.version}/xml/features</repository>
+  <feature name="de.drremote-db-duckdb" version="${project.version}">
+    <details>DrRemote duckdb database services</details>
+    <feature prerequisite="true" version="${karaf.version}">scr</feature>
+    <bundle start-level="80">mvn:org.duckdb/duckdb_jdbc/${duckdb.version}</bundle>
+    <bundle start-level="80">mvn:com.zaxxer/HikariCP/${hikari.version}</bundle>
+    <bundle start-level="80">mvn:de.drremote.db/duckdb/${project.version}</bundle>
+  </feature>
+</features>

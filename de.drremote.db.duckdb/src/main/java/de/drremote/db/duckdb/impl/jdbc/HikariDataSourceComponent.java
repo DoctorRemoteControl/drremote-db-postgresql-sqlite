@@ -168,4 +168,3 @@ public final class HikariDataSourceComponent implements DataSource {
         return delegate.isWrapperFor(iface);
     }
 }
-

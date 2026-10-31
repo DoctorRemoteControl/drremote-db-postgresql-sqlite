@@ -49,11 +49,11 @@
 
 **Interfaces:** Consumes Task 1 artifact IDs/version. Produces feature descriptors and example configurations that match those artifacts without private repositories.
 
-- [ ] Reproduce any stale artifact/version resolution using the actual feature build or descriptor inspection; retain the evidence.
-- [ ] Align feature descriptors, drivers, HikariCP, and prerequisites with the reactor. Use Maven filtering or equivalent single-source version values.
-- [ ] Add portable SQLite, DuckDB, and PostgreSQL `.cfg.example` files containing placeholders only.
-- [ ] Verify packaged descriptors/manifests; attempt an isolated Karaf SQLite/DuckDB smoke installation if practical.
-- [ ] Commit the descriptors and examples.
+- [x] Reproduce any stale artifact/version resolution using the actual feature build or descriptor inspection; retain the evidence.
+- [x] Align feature descriptors, drivers, HikariCP, and prerequisites with the reactor. Use Maven filtering or equivalent single-source version values.
+- [x] Add portable SQLite, DuckDB, and PostgreSQL `.cfg.example` files containing placeholders only.
+- [x] Verify packaged descriptors/manifests; attempt an isolated Karaf SQLite/DuckDB smoke installation if practical.
+- [x] Commit the descriptors and examples.
 
 ### Task 3: Public docs and CI
 

@@ -46,4 +46,3 @@ public final class JdbcTransactionManager implements TransactionManager {
         }
     }
 }
-
