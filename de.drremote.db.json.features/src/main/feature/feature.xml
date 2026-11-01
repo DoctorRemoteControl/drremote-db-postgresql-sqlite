@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<features xmlns="http://karaf.apache.org/xmlns/features/v1.6.0" name="drremote-db-json-${project.version}">
+  <feature name="de.drremote-db-json" version="${project.version}">
+    <details>Optional JSON results and parameters on existing JDBC transaction connections</details>
+    <bundle>mvn:com.fasterxml.jackson.core/jackson-annotations/${jackson.annotations.version}</bundle>
+    <bundle>mvn:com.fasterxml.jackson.core/jackson-core/${jackson.version}</bundle>
+    <bundle>mvn:com.fasterxml.jackson.core/jackson-databind/${jackson.version}</bundle>
+    <bundle>mvn:de.drremote.db/json/${project.version}</bundle>
+  </feature>
+</features>

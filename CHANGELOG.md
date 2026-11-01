@@ -2,6 +2,12 @@
 
 ## 1.1.0-SNAPSHOT — unreleased
 
+- Add the optional `de.drremote.db:json` adapter and `json-features` Karaf feature.
+  Query rows as JSON, bind JSON values, and explicitly parse JSON text columns
+  inside existing transactions. Existing database cores retain their APIs and
+  dependencies. Includes PostgreSQL/SQLite/DuckDB integration tests and a buildable
+  JSON settings client.
+
 - Add DuckDB as an embedded analytical database option, with a JDBC bundle, Karaf feature, configuration, and tests.
 - Refresh PostgreSQL and SQLite transaction handling. Nested calls on the same transaction manager/thread join the outer transaction; a nested failure marks it rollback-only even if caught.
 - Add SQLite atomic batch migrations, optional baselines for new installations, migration SQL drift detection, and automatic migration readiness services.

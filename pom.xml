@@ -26,6 +26,8 @@
     <osgi.ds.version>1.5.1</osgi.ds.version>
     <junit.version>5.10.3</junit.version>
     <karaf.version>4.4.11</karaf.version>
+    <jackson.version>2.22.4</jackson.version>
+    <jackson.annotations.version>2.22</jackson.annotations.version>
   </properties>
   <modules>
     <module>de.drremote.db.postgresql</module>
@@ -34,8 +36,13 @@
     <module>de.drremote.db.sqlite.features</module>
     <module>de.drremote.db.duckdb</module>
     <module>de.drremote.db.duckdb.features</module>
+    <module>de.drremote.db.json</module>
+    <module>de.drremote.db.json.features</module>
   </modules>
   <dependencyManagement><dependencies>
+    <dependency><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId><version>${jackson.version}</version></dependency>
+    <dependency><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-core</artifactId><version>${jackson.version}</version></dependency>
+    <dependency><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-annotations</artifactId><version>${jackson.annotations.version}</version></dependency>
     <dependency><groupId>org.osgi</groupId><artifactId>osgi.core</artifactId><version>${osgi.core.version}</version></dependency>
     <dependency><groupId>org.osgi</groupId><artifactId>org.osgi.service.component.annotations</artifactId><version>${osgi.ds.version}</version></dependency>
     <dependency><groupId>com.zaxxer</groupId><artifactId>HikariCP</artifactId><version>${hikari.version}</version></dependency>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent><groupId>de.drremote</groupId><artifactId>db-parent</artifactId><version>1.1.0-SNAPSHOT</version></parent>
+  <groupId>de.drremote.db</groupId><artifactId>json</artifactId><packaging>bundle</packaging>
+  <name>DrRemote DB optional JSON adapter</name>
+  <description>JSON query results and parameters on caller-owned JDBC connections.</description>
+  <dependencies>
+    <dependency><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId></dependency>
+    <dependency><groupId>org.xerial</groupId><artifactId>sqlite-jdbc</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.duckdb</groupId><artifactId>duckdb_jdbc</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency>
+  </dependencies>
+  <build><plugins>
+    <plugin><groupId>org.apache.felix</groupId><artifactId>maven-bundle-plugin</artifactId><extensions>true</extensions></plugin>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-source-plugin</artifactId></plugin>
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-javadoc-plugin</artifactId></plugin>
+  </plugins></build>
+</project>
