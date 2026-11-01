@@ -70,6 +70,23 @@ service:list example.notes.NotesRepository
 
 The migration registry creates the `notes` table and publishes a `DatabaseReady` service. The repository waits for that service before activation. Read the [SQLite usage guide](docs/usage-sqlite.md) for queries, transaction behavior, batches, and baselines.
 
+## Optional JSON support
+
+Use the separate JSON adapter inside any existing transaction callback:
+
+```java
+ArrayNode rows = transactions.inTransaction(db -> JsonQueries.on(db.getConnection())
+    .withJsonColumns("payload")
+    .query("SELECT id, payload FROM settings WHERE id = ?", id));
+```
+
+It converts result rows to JSON and binds `JsonNode` / `JsonValue` parameters,
+including PostgreSQL JSONB and SQLite/DuckDB JSON storage. Existing database
+cores keep their current APIs and have no Jackson dependency. Install the
+optional `de.drremote-db-json` feature when using it in Karaf.
+
+See the [JSON guide](docs/usage-json.md) and [buildable JSON client](examples/json-client).
+
 ## Other databases
 
 | Database | Example configuration | Karaf feature repository | Feature |
@@ -97,6 +114,7 @@ Use a `provided` dependency in an OSGi client; the runtime installs the database
 - PostgreSQL: [configuration](docs/configuration-postgresql.md) · [usage](docs/usage-postgresql.md)
 - SQLite: [configuration](docs/configuration-sqlite.md) · [usage](docs/usage-sqlite.md)
 - DuckDB: [configuration](docs/configuration-duckdb.md) · [usage](docs/usage-duckdb.md)
+- [JSON query results and parameters](docs/usage-json.md)
 - [Changes and upgrade notes](CHANGELOG.md)
 - [Contributing and validation](CONTRIBUTING.md)
 
