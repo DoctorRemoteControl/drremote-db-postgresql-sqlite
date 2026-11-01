@@ -30,6 +30,13 @@ Choose a unique `poolName` for each live JMX-enabled pool in the JVM. MBeans are
 removed when their owning pool stops. Disabling `registerMbeans` through
 ConfigAdmin removes the previous pool's MBeans and replaces its connections.
 
+Malformed JMX names, wildcard/pattern names, and names already registered by
+another live pool are rejected before creating a replacement. The running pool
+and other pools' MBeans remain intact after rejection. DrRemote components
+coordinate JMX-enabled startup/replacement/stop against the platform MBean
+server, including concurrent activations. Validation follows Hikari's selected
+MBean naming convention, including its `hikaricp.jmx.register2.0` JVM property.
+
 When replacing a pool that already has JMX enabled, also change `poolName`, or
 restart the component before reusing its name. A live enabled replacement with
 the same name is rejected before the current pool changes: otherwise Hikari's

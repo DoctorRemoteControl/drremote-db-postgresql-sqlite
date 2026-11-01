@@ -47,5 +47,7 @@
 - [x] Add meaningful packager tests for required-artifact completeness, whitelisted contents/checksums, missing artifacts, and snapshot refusal; observe RED before adding the packager.
 - [x] Prepare version 1.1.0, packager, binary-install guide, release notes, and CI archive verification/upload. Build complete assets; commit.
 - [x] Verify all Java tests/features on Java 17/21 with PostgreSQL enabled; build both examples; run Python tests, docs/link/credential checks, archive integrity checks, fresh-cache consumer build, and fresh Karaf installation from extracted binary repository.
-- [ ] Obtain one independent review, fix important findings RED to GREEN, rerun affected/full checks, and record final evidence.
+- [x] Obtain one independent review, fix important findings RED to GREEN, rerun affected/full checks, and record final evidence.
 - [ ] Present concrete assets and validation; obtain the final public-main/release publication decision without introducing extra branches.
+
+Final evidence: 151 Java tests pass without skips on both Java 17 and 21; five Python packager tests and four feature checks pass. Both examples rebuild from the final ZIP with a fresh Maven cache; a fresh Java17/Karaf runtime runs both examples, migrations/readiness, core/JSON operations, and native JMX. Both important independent-review findings were reproduced before fixes; cross-pool collisions, malformed/pattern names, concurrent activation, and alternate Hikari naming now have passing coverage. No minor findings or declined behaviors remain. Publication remains a separate final decision.
