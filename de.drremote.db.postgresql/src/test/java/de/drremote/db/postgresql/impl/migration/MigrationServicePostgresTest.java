@@ -135,6 +135,91 @@ class MigrationServicePostgresTest {
         }
     }
 
+    @Test
+    @Timeout(20)
+    void complexPsqlScriptSupportsProceduralSqlMetaCommandsCopyAndReplay() throws Exception {
+        start(1);
+        String sql;
+        try (var input = getClass().getResourceAsStream("/migrations/complex-psql.sql")) {
+            assertNotNull(input);
+            sql = new String(input.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8)
+                .replace("${table}", table);
+        }
+        var descriptor = descriptor(List.of(script(1, sql, true)));
+        service.migratePlugin(descriptor);
+        service.migratePlugin(descriptor);
+        try (var connection = dataSource.getConnection(); var statement = connection.createStatement();
+             var rows = statement.executeQuery("SELECT " + schema + ".adjusted_value(5), COUNT(*) FROM " + schema + "." + table)) {
+            assertTrue(rows.next());
+            assertEquals(15, rows.getInt(1));
+            assertEquals(4, rows.getInt(2));
+        }
+        assertEquals(1, recordedVersions());
+    }
+
+    @Test
+    @Timeout(20)
+    void failedTransactionalPsqlScriptRollsBackAndDoesNotRecordVersion() throws Exception {
+        start(1);
+        var migration = script(1, "CREATE TABLE " + table + " (id INTEGER);\n"
+            + "INSERT INTO " + table + " VALUES (1);\n"
+            + "DO $failure$ BEGIN RAISE EXCEPTION 'deliberate script failure'; END; $failure$;\n"
+            + "INSERT INTO " + table + " VALUES (2);\n", true);
+        assertThrows(RuntimeException.class, () -> service.migratePlugin(descriptor(List.of(migration))));
+        assertNull(relation(schema + "." + table));
+        assertEquals(0, recordedVersions());
+    }
+
+    @Test
+    @Timeout(20)
+    void explicitTransactionOptOutSupportsConcurrentIndexCreation() throws Exception {
+        start(1);
+        var descriptor = descriptor(List.of(
+            migration(1, "CREATE TABLE " + table + " (id INTEGER PRIMARY KEY)"),
+            script(2, "CREATE INDEX CONCURRENTLY " + table + "_idx ON " + table + " (id);\n", false),
+            migration(3, "INSERT INTO " + table + " VALUES (1)")));
+        service.migratePlugin(descriptor);
+        service.migratePlugin(descriptor);
+        assertNotNull(relation(schema + "." + table + "_idx"));
+        assertEquals(3, recordedVersions());
+    }
+
+    @Test
+    @Timeout(20)
+    void defaultTransactionalScriptRejectsConcurrentIndexAndKeepsCompletedVersions() throws Exception {
+        start(1);
+        var descriptor = descriptor(List.of(
+            migration(1, "CREATE TABLE " + table + " (id INTEGER PRIMARY KEY)"),
+            script(2, "CREATE INDEX CONCURRENTLY " + table + "_idx ON " + table + " (id);\n", true)));
+        assertThrows(RuntimeException.class, () -> service.migratePlugin(descriptor));
+        assertNotNull(relation(schema + "." + table));
+        assertNull(relation(schema + "." + table + "_idx"));
+        assertEquals(1, recordedVersions());
+    }
+
+    private ScriptMigration script(int version, String sql, boolean singleTransaction) throws Exception {
+        Path path = directory.resolve("migration-" + version + ".sql");
+        Files.writeString(path, sql);
+        URL url = path.toUri().toURL();
+        return new ScriptMigration() {
+            public int getVersion() { return version; }
+            public String getDescription() { return "Real psql script " + version; }
+            public URL getScriptUrl() { return url; }
+            public boolean isSingleTransaction() { return singleTransaction; }
+        };
+    }
+
+    private int recordedVersions() throws Exception {
+        try (var connection = dataSource.getConnection();
+             var statement = connection.prepareStatement("SELECT COUNT(*) FROM core.schema_migrations WHERE plugin_name = ?")) {
+            statement.setString(1, plugin);
+            try (var rows = statement.executeQuery()) {
+                assertTrue(rows.next());
+                return rows.getInt(1);
+            }
+        }
+    }
+
     private String relation(String name) throws Exception {
         try (var connection = dataSource.getConnection();
              var statement = connection.prepareStatement("SELECT to_regclass(?)::text")) {

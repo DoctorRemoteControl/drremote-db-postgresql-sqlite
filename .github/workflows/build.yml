@@ -42,6 +42,8 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ matrix.java }}
+      - name: Verify the PostgreSQL script client
+        run: psql --version
       - name: Build, test, and verify Karaf features
         run: mvn --batch-mode --no-transfer-progress clean install
       - name: Build the SQLite example
