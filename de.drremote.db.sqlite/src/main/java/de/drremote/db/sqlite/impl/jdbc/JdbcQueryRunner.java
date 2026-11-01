@@ -35,14 +35,15 @@ public class JdbcQueryRunner implements QueryRunner {
 
     @Override
     public <T> T queryOne(String sql, RowMapper<T> mapper, Object... params) throws DbCoreException {
-        List<T> list = query(sql, mapper, params);
-        if (list.isEmpty()) {
-            return null;
+        try (PreparedStatement ps = prepareStatement(sql, params);
+             ResultSet rows = ps.executeQuery()) {
+            if (!rows.next()) return null;
+            T result = mapper.mapRow(rows);
+            if (rows.next()) throw new DbCoreException("Expected single result, got more than one");
+            return result;
+        } catch (SQLException failure) {
+            throw new DbCoreException("Error executing query: " + sql, failure);
         }
-        if (list.size() > 1) {
-            throw new DbCoreException("Expected single result, got " + list.size());
-        }
-        return list.get(0);
     }
 
     @Override
@@ -56,11 +57,20 @@ public class JdbcQueryRunner implements QueryRunner {
 
     private PreparedStatement prepareStatement(String sql, Object... params) throws SQLException {
         PreparedStatement ps = connection.prepareStatement(sql);
-        if (params != null) {
-            for (int i = 0; i < params.length; i++) {
-                ps.setObject(i + 1, params[i]);
+        try {
+            if (params != null) {
+                for (int i = 0; i < params.length; i++) {
+                    ps.setObject(i + 1, params[i]);
+                }
             }
+            return ps;
+        } catch (SQLException | RuntimeException | Error failure) {
+            try {
+                ps.close();
+            } catch (SQLException | RuntimeException | Error closeFailure) {
+                if (closeFailure != failure) failure.addSuppressed(closeFailure);
+            }
+            throw failure;
         }
-        return ps;
     }
 }
