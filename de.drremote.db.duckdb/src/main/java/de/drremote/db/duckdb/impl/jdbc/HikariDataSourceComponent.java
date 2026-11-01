@@ -5,6 +5,10 @@ import com.zaxxer.hikari.HikariDataSource;
 import org.osgi.service.component.annotations.*;
 
 import javax.sql.DataSource;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import javax.management.MalformedObjectNameException;
+import java.lang.management.ManagementFactory;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -84,22 +88,76 @@ public final class HikariDataSourceComponent implements DataSource {
         }
 
         HikariDataSource oldDelegate = delegate;
-        // Hikari registers MBeans during startup. A same-name replacement would
-        // collide with the running pool and then lose its MBeans on old-pool close.
-        if (registerMbeans && oldDelegate != null && oldDelegate.isRegisterMbeans()
-                && poolName.equals(oldDelegate.getPoolName())) {
-            throw new IllegalStateException("JMX poolName is already active: " + poolName
-                + "; change poolName when replacing an enabled pool, or restart the component");
+        if (registerMbeans || oldDelegate != null && oldDelegate.isRegisterMbeans()) {
+            MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+            // Coordinate our components across database types and class loaders.
+            synchronized (server) {
+                replaceDelegate(hc, oldDelegate, server);
+            }
+        } else {
+            replaceDelegate(hc, oldDelegate, null);
         }
-        HikariDataSource newDelegate = new HikariDataSource(hc);
-        delegate = newDelegate;
-        closeQuietly(oldDelegate);
+    }
+
+    private void replaceDelegate(HikariConfig config, HikariDataSource previous, MBeanServer server) {
+        ObjectName[] names = null;
+        if (config.isRegisterMbeans()) {
+            // Closing the previous pool would unregister a same-name replacement,
+            // even if someone had manually removed the previous pool's MBeans.
+            if (previous != null && previous.isRegisterMbeans()
+                    && config.getPoolName().equals(previous.getPoolName())) {
+                throw new IllegalStateException("JMX poolName is already active: " + config.getPoolName()
+                    + "; change poolName when replacing an enabled pool, or restart the component");
+            }
+            names = availableJmxNames(config.getPoolName(), server);
+        }
+        HikariDataSource replacement = new HikariDataSource(config);
+        try {
+            if (names != null && (!server.isRegistered(names[0]) || !server.isRegistered(names[1]))) {
+                throw new IllegalStateException("Hikari could not register JMX MBeans for poolName: " + config.getPoolName());
+            }
+        } catch (RuntimeException | Error failure) {
+            try { replacement.close(); }
+            catch (RuntimeException | Error cleanup) {
+                if (cleanup != failure) failure.addSuppressed(cleanup);
+            }
+            throw failure;
+        }
+        delegate = replacement;
+        closeQuietly(previous);
+    }
+
+    private static ObjectName[] availableJmxNames(String poolName, MBeanServer server) {
+        boolean modern = "true".equals(System.getProperty("hikaricp.jmx.register2.0"));
+        ObjectName[] names = new ObjectName[2];
+        String[] types = {"PoolConfig", "Pool"};
+        for (int i = 0; i < names.length; i++) {
+            try {
+                names[i] = new ObjectName("com.zaxxer.hikari:type=" + types[i]
+                    + (modern ? ",name=" + poolName : " (" + poolName + ")"));
+            } catch (MalformedObjectNameException invalid) {
+                throw new IllegalArgumentException("Invalid JMX poolName: " + poolName, invalid);
+            }
+            if (names[i].isPattern()) throw new IllegalArgumentException("JMX poolName must not be a pattern: " + poolName);
+            if (server.isRegistered(names[i])) {
+                throw new IllegalStateException("JMX poolName is already registered: " + poolName
+                    + "; choose a unique poolName");
+            }
+        }
+        return names;
     }
 
     private synchronized void closeDelegate() {
         HikariDataSource ds = delegate;
-        delegate = null;
-        closeQuietly(ds);
+        if (ds != null && ds.isRegisterMbeans()) {
+            synchronized (ManagementFactory.getPlatformMBeanServer()) {
+                delegate = null;
+                closeQuietly(ds);
+            }
+        } else {
+            delegate = null;
+            closeQuietly(ds);
+        }
     }
 
     private static void closeQuietly(HikariDataSource ds) {

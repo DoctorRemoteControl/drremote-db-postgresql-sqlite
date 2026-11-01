@@ -3,6 +3,8 @@ package de.drremote.db.postgresql.impl.jdbc;
 import com.zaxxer.hikari.HikariDataSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import javax.management.MBeanServer;
@@ -90,6 +92,99 @@ class HikariDataSourceComponentTest {
         assertConnectionWorks();
     }
 
+    @Test void duplicateActivationCannotTakeAnotherPoolsMBeans() throws Exception {
+        HikariDataSourceComponent owner = new HikariDataSourceComponent();
+        try {
+            owner.activate(properties(name, true));
+            assertThrows(IllegalStateException.class, () -> component.activate(properties(name, true)));
+            component.deactivate();
+            assertTrue(server.isRegistered(pool(name)));
+            assertTrue(server.isRegistered(config(name)));
+            assertConnectionWorks(owner);
+        } finally { owner.deactivate(); }
+    }
+
+    @Test void duplicateReplacementPreservesBothIndependentPools() throws Exception {
+        HikariDataSourceComponent owner = new HikariDataSourceComponent();
+        String occupied = name + "-owner";
+        try {
+            owner.activate(properties(occupied, true));
+            component.activate(properties(name, true));
+            assertThrows(IllegalStateException.class, () -> component.modified(properties(occupied, true)));
+            assertTrue(server.isRegistered(pool(name)));
+            assertTrue(server.isRegistered(pool(occupied)));
+            assertConnectionWorks();
+            assertConnectionWorks(owner);
+            component.deactivate();
+            assertTrue(server.isRegistered(pool(occupied)));
+            assertConnectionWorks(owner);
+        } finally { owner.deactivate(); }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"invalid,name", "invalid*", "invalid?"})
+    void invalidOrPatternJmxNamePreservesTheRunningPool(String invalid) throws Exception {
+        component.activate(properties(name, true));
+        assertThrows(IllegalArgumentException.class, () -> component.modified(properties(invalid, true)));
+        assertEquals(name, component.unwrap(HikariDataSource.class).getPoolName());
+        assertTrue(server.isRegistered(pool(name)));
+        assertTrue(server.isRegistered(config(name)));
+        assertConnectionWorks();
+    }
+
+    @Test void alternateHikariNamingConventionUsesTheSameValidation() throws Exception {
+        String previous = System.getProperty("hikaricp.jmx.register2.0");
+        HikariDataSourceComponent other = new HikariDataSourceComponent();
+        System.setProperty("hikaricp.jmx.register2.0", "true");
+        try {
+            component.activate(properties(name, true));
+            assertTrue(server.isRegistered(pool(name)));
+            assertThrows(IllegalStateException.class, () -> other.activate(properties(name, true)));
+            assertThrows(IllegalArgumentException.class, () -> component.modified(properties("invalid*", true)));
+            assertConnectionWorks();
+        } finally {
+            other.deactivate();
+            component.deactivate();
+            if (previous == null) System.clearProperty("hikaricp.jmx.register2.0");
+            else System.setProperty("hikaricp.jmx.register2.0", previous);
+        }
+    }
+
+    @Test void concurrentActivationsCannotClaimTheSameJmxName() throws Exception {
+        HikariDataSourceComponent other = new HikariDataSourceComponent();
+        var executor = java.util.concurrent.Executors.newFixedThreadPool(2);
+        var start = new java.util.concurrent.CountDownLatch(1);
+        try {
+            java.util.concurrent.Callable<Boolean> first = () -> activateAfter(start, component);
+            java.util.concurrent.Callable<Boolean> second = () -> activateAfter(start, other);
+            var a = executor.submit(first);
+            var b = executor.submit(second);
+            start.countDown();
+            boolean aStarted = a.get(15, java.util.concurrent.TimeUnit.SECONDS);
+            boolean bStarted = b.get(15, java.util.concurrent.TimeUnit.SECONDS);
+            assertNotEquals(aStarted, bStarted, "Exactly one pool may own the name");
+            HikariDataSourceComponent winner = aStarted ? component : other;
+            HikariDataSourceComponent loser = aStarted ? other : component;
+            loser.deactivate();
+            assertTrue(server.isRegistered(pool(name)));
+            assertConnectionWorks(winner);
+        } finally {
+            executor.shutdownNow();
+            other.deactivate();
+        }
+    }
+
+    private boolean activateAfter(java.util.concurrent.CountDownLatch start, HikariDataSourceComponent target) throws Exception {
+        start.await();
+        try {
+            target.activate(properties(name, true));
+            return true;
+        } catch (IllegalStateException conflict) {
+            assertTrue(conflict.getMessage().contains("poolName"));
+            return false;
+        }
+    }
+
     private Map<String, Object> properties(String poolName, Object register) {
         Map<String, Object> properties = new HashMap<>();
         properties.put("jdbcUrl", System.getenv("DRREMOTE_TEST_POSTGRES_URL"));
@@ -102,8 +197,10 @@ class HikariDataSourceComponentTest {
         return properties;
     }
 
-    private void assertConnectionWorks() throws Exception {
-        try (var connection = component.getConnection(); var statement = connection.createStatement();
+    private void assertConnectionWorks() throws Exception { assertConnectionWorks(component); }
+
+    private void assertConnectionWorks(HikariDataSourceComponent target) throws Exception {
+        try (var connection = target.getConnection(); var statement = connection.createStatement();
              var rows = statement.executeQuery("SELECT 1")) {
             assertTrue(rows.next());
             assertEquals(1, rows.getInt(1));
@@ -111,10 +208,10 @@ class HikariDataSourceComponentTest {
     }
 
     private ObjectName pool(String name) throws Exception {
-        return new ObjectName("com.zaxxer.hikari:type=Pool (" + name + ")");
+        return new ObjectName("com.zaxxer.hikari:type=Pool" + ("true".equals(System.getProperty("hikaricp.jmx.register2.0")) ? ",name=" + name : " (" + name + ")"));
     }
 
     private ObjectName config(String name) throws Exception {
-        return new ObjectName("com.zaxxer.hikari:type=PoolConfig (" + name + ")");
+        return new ObjectName("com.zaxxer.hikari:type=PoolConfig" + ("true".equals(System.getProperty("hikaricp.jmx.register2.0")) ? ",name=" + name : " (" + name + ")"));
     }
 }
