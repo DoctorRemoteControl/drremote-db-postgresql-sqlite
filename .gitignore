@@ -34,3 +34,7 @@ Thumbs.db
 .mvn/timing.properties
 # Local agent execution records
 .superpowers/
+
+# Release tooling
+__pycache__/
+*.pyc

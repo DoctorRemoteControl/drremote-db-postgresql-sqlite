@@ -1,6 +1,6 @@
 # JSON queries and parameters
 
-The optional `de.drremote.db:json:1.1.0-SNAPSHOT` bundle converts JDBC rows to
+The optional `de.drremote.db:json:1.1.0` bundle converts JDBC rows to
 Jackson JSON nodes and binds JSON values through prepared statements. It works
 on the connection supplied by any existing PostgreSQL, SQLite, or DuckDB
 transaction callback. The database core bundles have no Jackson dependency.
@@ -11,7 +11,7 @@ Build from source using `mvn clean install`. In Karaf, install your chosen
 database feature and the optional JSON feature:
 
 ```text
-feature:repo-add mvn:de.drremote.db/json-features/1.1.0-SNAPSHOT/xml/features
+feature:repo-add mvn:de.drremote.db/json-features/1.1.0/xml/features
 feature:install de.drremote-db-json
 ```
 
@@ -19,7 +19,7 @@ This installs the JSON bundle and Jackson databind/core 2.22.4 plus annotations
 2.22, as aligned by Jackson's published BOM. It does not install a database
 driver or select a database for your application.
 
-Add `de.drremote.db:json:1.1.0-SNAPSHOT` as a `provided` dependency in an OSGi
+Add `de.drremote.db:json:1.1.0` as a `provided` dependency in an OSGi
 client. Declare Jackson databind too when your client directly uses Jackson
 types. The [JSON settings client](../examples/json-client) contains a complete
 POM and two small Declarative Services components.

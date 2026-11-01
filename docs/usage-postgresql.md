@@ -102,7 +102,7 @@ files referenced by `\i`, `\ir`, or file-based `\copy` must exist at the paths
 psql resolves on the runtime host; sibling bundle resources are not extracted
 automatically. `COPY ... FROM stdin` input embedded in the script is supported.
 
-The [real integration fixture](../de.drremote.db.postgresql/src/test/resources/migrations/complex-psql.sql)
+The [real integration fixture](https://github.com/DoctorRemoteControl/drremote-db-postgresql-sqlite/blob/main/de.drremote.db.postgresql/src/test/resources/migrations/complex-psql.sql)
 exercises procedural SQL, meta-commands, and COPY input together. Its `${table}`
 placeholder is substituted by the test, not by the production migration runner.
 

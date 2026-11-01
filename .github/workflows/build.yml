@@ -50,7 +50,11 @@ jobs:
         run: mvn --batch-mode --no-transfer-progress -f examples/notes-client/pom.xml verify
       - name: Build the JSON example
         run: mvn --batch-mode --no-transfer-progress -f examples/json-client/pom.xml verify
-      - name: Upload bundles, feature descriptors, and example
+      - name: Test and prepare the binary release archive
+        run: |
+          python3 -m unittest discover -s scripts/tests -v
+          python3 scripts/package_release.py --repository "$HOME/.m2/repository"
+      - name: Upload bundles, feature descriptors, and examples
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: drremote-db-java-${{ matrix.java }}
@@ -60,6 +64,8 @@ jobs:
             de.drremote.db.*.features/target/feature/feature.xml
             examples/notes-client/target/*.jar
             examples/json-client/target/*.jar
+            target/release/*.zip
+            target/release/SHA256SUMS
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

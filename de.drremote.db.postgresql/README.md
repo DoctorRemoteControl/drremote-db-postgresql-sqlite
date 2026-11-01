@@ -2,7 +2,7 @@
 
 OSGi database services for PostgreSQL: pooled JDBC access, transactions, queries, and plugin migrations.
 
-- Public artifact: `de.drremote.db:postgresql:1.1.0-SNAPSHOT`
+- Public artifact: `de.drremote.db:postgresql:1.1.0`
 - API package / bundle symbolic name: `de.drremote.db.postgresql.api` / `de.drremote.db.postgresql`
 - ConfigAdmin PID: `de.drremote.db.postgresql`
 - Java 17+; supplied Karaf feature targets 4.4.11.

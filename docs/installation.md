@@ -17,11 +17,11 @@ Generated feature XML is in each `de.drremote.db.<database>.features/target/feat
 Build and install the project as the same operating-system user that runs Karaf. Copy one of the [example configurations](../examples) to the matching filename in Karaf's `etc/` directory before installing its feature.
 
 ```text
-feature:repo-add mvn:de.drremote.db/sqlite-features/1.1.0-SNAPSHOT/xml/features
+feature:repo-add mvn:de.drremote.db/sqlite-features/1.1.0/xml/features
 feature:install de.drremote-db-sqlite
 ```
 
-Replace `sqlite` with `postgresql` or `duckdb` as needed. The descriptors install the JDBC driver, HikariCP, and database bundle, with Karaf's `scr` feature as a prerequisite. Feature versions use OSGi notation `1.1.0.SNAPSHOT`; Maven URLs use `1.1.0-SNAPSHOT`.
+Replace `sqlite` with `postgresql` or `duckdb` as needed. The descriptors install the JDBC driver, HikariCP, and database bundle, with Karaf's `scr` feature as a prerequisite. Feature versions use OSGi notation `1.1.0`; Maven URLs use `1.1.0`.
 
 ### Local repository resolution
 

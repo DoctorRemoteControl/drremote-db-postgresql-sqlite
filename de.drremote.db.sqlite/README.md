@@ -2,7 +2,7 @@
 
 OSGi database services for SQLite: pooled JDBC access, transactions, queries, and plugin migrations.
 
-- Public artifact: `de.drremote.db:sqlite:1.1.0-SNAPSHOT`
+- Public artifact: `de.drremote.db:sqlite:1.1.0`
 - API package / bundle symbolic name: `de.drremote.db.sqlite.api` / `de.drremote.db.sqlite`
 - ConfigAdmin PID: `de.drremote.db.sqlite`
 - Java 17+; supplied Karaf feature targets 4.4.11.
