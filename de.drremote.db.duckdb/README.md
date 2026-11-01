@@ -2,7 +2,7 @@
 
 OSGi database services for DuckDB: pooled JDBC access, transactions, queries, and plugin migrations.
 
-- Public artifact: `de.drremote.db:duckdb:1.1.0-SNAPSHOT`
+- Public artifact: `de.drremote.db:duckdb:1.1.0`
 - API package / bundle symbolic name: `de.drremote.db.duckdb.api` / `de.drremote.db.duckdb`
 - ConfigAdmin PID: `de.drremote.db.duckdb`
 - Java 17+; supplied Karaf feature targets 4.4.11.

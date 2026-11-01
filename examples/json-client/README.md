@@ -15,9 +15,9 @@ Configure/install [SQLite](../../README.md#quick-start-sqlite-in-karaf), then ad
 the optional JSON feature and this client in Karaf:
 
 ```text
-feature:repo-add mvn:de.drremote.db/json-features/1.1.0-SNAPSHOT/xml/features
+feature:repo-add mvn:de.drremote.db/json-features/1.1.0/xml/features
 feature:install de.drremote-db-json
-bundle:install -s file:/absolute/path/to/checkout/examples/json-client/target/json-client-1.1.0-SNAPSHOT.jar
+bundle:install -s file:/absolute/path/to/checkout/examples/json-client/target/json-client-1.1.0.jar
 service:list example.jsonsettings.JsonSettings
 ```
 

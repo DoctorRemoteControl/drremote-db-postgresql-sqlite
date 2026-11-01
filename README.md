@@ -11,7 +11,7 @@ PostgreSQL, SQLite, and DuckDB services for modular Java applications running in
 | SQLite | Embedded applications and local storage | Single statements, atomic batches, baselines, readiness services |
 | DuckDB | Embedded analytical workloads | Explicit single-statement migrations |
 
-**Current development version: `1.1.0-SNAPSHOT`.** Build this project from source. Its artifacts are not published to Maven Central, and the former public DrRemote Maven repository is no longer available. Third-party dependencies come from Maven Central; no private server or account is required.
+**Version: `1.1.0`.** Build from source or use the [binary release installation guide](docs/binary-installation.md). Its artifacts are not published to Maven Central, and the former public DrRemote Maven repository is no longer available. Third-party dependencies come from Maven Central; no private server or account is required.
 
 ## Requirements
 
@@ -46,12 +46,14 @@ For validation without installation, use `mvn clean verify`. CI also uploads bun
 3. In the Karaf console, install the feature:
 
    ```text
-   feature:repo-add mvn:de.drremote.db/sqlite-features/1.1.0-SNAPSHOT/xml/features
+   feature:repo-add mvn:de.drremote.db/sqlite-features/1.1.0/xml/features
    feature:install de.drremote-db-sqlite
    service:list de.drremote.db.sqlite.api.DbCore
    ```
 
 The example database is stored at `${karaf.data}/drremote.sqlite`. Karaf must run as the same user as Maven, or have its Maven resolver's local repository configured to the repository used for `mvn install`. See [Karaf installation and troubleshooting](docs/installation.md).
+
+PostgreSQL `ScriptMigration` deliberately uses an installed `psql` client for complex scripts and client meta-commands. This remains a supported migration path; see [PostgreSQL usage](docs/usage-postgresql.md).
 
 ### Try a client bundle
 
@@ -64,7 +66,7 @@ mvn -f examples/notes-client/pom.xml clean package
 Then install its JAR in the Karaf console, replacing the path with your checkout's absolute path:
 
 ```text
-bundle:install -s file:/absolute/path/to/drremote-db-postgresql-sqlite/examples/notes-client/target/notes-client-1.1.0-SNAPSHOT.jar
+bundle:install -s file:/absolute/path/to/drremote-db-postgresql-sqlite/examples/notes-client/target/notes-client-1.1.0.jar
 service:list example.notes.NotesRepository
 ```
 
@@ -91,14 +93,14 @@ See the [JSON guide](docs/usage-json.md) and [buildable JSON client](examples/js
 
 | Database | Example configuration | Karaf feature repository | Feature |
 | --- | --- | --- | --- |
-| PostgreSQL | [Configuration](examples/de.drremote.db.postgresql.cfg.example) | `mvn:de.drremote.db/postgresql-features/1.1.0-SNAPSHOT/xml/features` | `de.drremote-db-postgresql` |
-| DuckDB | [Configuration](examples/de.drremote.db.duckdb.cfg.example) | `mvn:de.drremote.db/duckdb-features/1.1.0-SNAPSHOT/xml/features` | `de.drremote-db-duckdb` |
+| PostgreSQL | [Configuration](examples/de.drremote.db.postgresql.cfg.example) | `mvn:de.drremote.db/postgresql-features/1.1.0/xml/features` | `de.drremote-db-postgresql` |
+| DuckDB | [Configuration](examples/de.drremote.db.duckdb.cfg.example) | `mvn:de.drremote.db/duckdb-features/1.1.0/xml/features` | `de.drremote-db-duckdb` |
 
 Copy the appropriate configuration to `$KARAF_HOME/etc/`, removing the `.example` suffix, and replace PostgreSQL placeholders before installing its feature.
 
 ## Maven coordinates
 
-All entries below use version `1.1.0-SNAPSHOT`, after building and installing from source:
+All entries below use version `1.1.0`, after building and installing from source:
 
 | Group | Bundle artifact | Feature artifact | Java API package |
 | --- | --- | --- | --- |
@@ -110,7 +112,10 @@ Use a `provided` dependency in an OSGi client; the runtime installs the database
 
 ## Documentation
 
+- [Binary release installation](docs/binary-installation.md)
 - [Installation and troubleshooting](docs/installation.md)
+- [Connection pool diagnostics](docs/diagnostics.md)
+- [1.1.0 release notes](docs/releases/1.1.0.md)
 - PostgreSQL: [configuration](docs/configuration-postgresql.md) · [usage](docs/usage-postgresql.md)
 - SQLite: [configuration](docs/configuration-sqlite.md) · [usage](docs/usage-sqlite.md)
 - DuckDB: [configuration](docs/configuration-duckdb.md) · [usage](docs/usage-duckdb.md)

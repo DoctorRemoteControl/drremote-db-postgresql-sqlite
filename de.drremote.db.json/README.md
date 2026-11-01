@@ -1,6 +1,6 @@
 # DrRemote DB — optional JSON adapter
 
-`de.drremote.db:json:1.1.0-SNAPSHOT` provides JSON query results and JSON parameters
+`de.drremote.db:json:1.1.0` provides JSON query results and JSON parameters
 on a caller-owned JDBC connection. Its API is `de.drremote.db.json.api`:
 
 - `JsonQueries.on(connection)` — query, queryOne, and update within your transaction.
@@ -13,6 +13,6 @@ runtime. Existing database cores remain usable without it.
 
 See the [usage guide](../docs/usage-json.md), [buildable client](../examples/json-client),
 and [main README](../README.md). For Karaf, install `de.drremote-db-json` from
-`de.drremote.db:json-features:1.1.0-SNAPSHOT` after building from source.
+`de.drremote.db:json-features:1.1.0` after building from source.
 
 Licensed under [Apache-2.0](../LICENSE).

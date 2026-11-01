@@ -44,8 +44,8 @@
 
 ## Task 4: Release assets and complete verification
 
-- [ ] Add meaningful packager tests for required-artifact completeness, whitelisted contents/checksums, missing artifacts, and snapshot refusal; observe RED before adding the packager.
-- [ ] Prepare version 1.1.0, packager, binary-install guide, release notes, and CI archive verification/upload. Build complete assets; commit.
-- [ ] Verify all Java tests/features on Java 17/21 with PostgreSQL enabled; build both examples; run Python tests, docs/link/credential checks, archive integrity checks, fresh-cache consumer build, and fresh Karaf installation from extracted binary repository.
+- [x] Add meaningful packager tests for required-artifact completeness, whitelisted contents/checksums, missing artifacts, and snapshot refusal; observe RED before adding the packager.
+- [x] Prepare version 1.1.0, packager, binary-install guide, release notes, and CI archive verification/upload. Build complete assets; commit.
+- [x] Verify all Java tests/features on Java 17/21 with PostgreSQL enabled; build both examples; run Python tests, docs/link/credential checks, archive integrity checks, fresh-cache consumer build, and fresh Karaf installation from extracted binary repository.
 - [ ] Obtain one independent review, fix important findings RED to GREEN, rerun affected/full checks, and record final evidence.
 - [ ] Present concrete assets and validation; obtain the final public-main/release publication decision without introducing extra branches.
