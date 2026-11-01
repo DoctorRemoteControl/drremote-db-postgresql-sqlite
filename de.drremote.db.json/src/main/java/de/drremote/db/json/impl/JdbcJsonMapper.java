@@ -17,6 +17,7 @@ import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.time.temporal.TemporalAccessor;
 import java.util.HashSet;
+import java.util.Base64;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -68,17 +69,29 @@ public final class JdbcJsonMapper {
                 throw new JsonDbException("Invalid JSON in column '" + labels[index] + "'", failure);
             }
         }
+        if (types[index] == Types.BINARY || types[index] == Types.VARBINARY
+                || types[index] == Types.LONGVARBINARY || types[index] == Types.BLOB) {
+            byte[] bytes = rows.getBytes(column);
+            return bytes == null ? NODES.nullNode() : NODES.textNode(Base64.getEncoder().encodeToString(bytes));
+        }
         Object value = rows.getObject(column);
         if (value == null) return NODES.nullNode();
         if (types[index] == Types.BOOLEAN || "BOOLEAN".equalsIgnoreCase(typeNames[index])
                 || "BOOL".equalsIgnoreCase(typeNames[index])) {
             return NODES.booleanNode(rows.getBoolean(column));
         }
-        if (types[index] == Types.TIMESTAMP_WITH_TIMEZONE) {
+        if (types[index] == Types.TIMESTAMP_WITH_TIMEZONE
+                || "timestamptz".equalsIgnoreCase(typeNames[index])
+                || "TIMESTAMP WITH TIME ZONE".equalsIgnoreCase(typeNames[index])) {
             return NODES.textNode(rows.getObject(column, OffsetDateTime.class).toString());
         }
-        if (types[index] == Types.TIME_WITH_TIMEZONE) {
+        if (types[index] == Types.TIME_WITH_TIMEZONE || "timetz".equalsIgnoreCase(typeNames[index])
+                || "TIME WITH TIME ZONE".equalsIgnoreCase(typeNames[index])) {
             return NODES.textNode(rows.getObject(column, OffsetTime.class).toString());
+        }
+        if (value instanceof java.sql.Time) {
+            // java.sql.Time drops fractional seconds; the JDBC text retains them.
+            return NODES.textNode(rows.getString(column));
         }
         return value(value, labels[index]);
     }
@@ -103,7 +116,7 @@ public final class JdbcJsonMapper {
         if (value instanceof java.sql.Time time) return NODES.textNode(time.toLocalTime().toString());
         if (value instanceof java.sql.Timestamp timestamp) return NODES.textNode(timestamp.toLocalDateTime().toString());
         if (value instanceof TemporalAccessor || value instanceof UUID) return NODES.textNode(value.toString());
-        if (value instanceof byte[] bytes) return NODES.binaryNode(bytes);
+        if (value instanceof byte[] bytes) return NODES.textNode(Base64.getEncoder().encodeToString(bytes));
         if (value instanceof java.sql.Array array) {
             try {
                 return value(array.getArray(), label);
