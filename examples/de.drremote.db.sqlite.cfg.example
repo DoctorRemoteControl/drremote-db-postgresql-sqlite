@@ -1,6 +1,8 @@
 # Copy to KARAF_HOME/etc/de.drremote.db.sqlite.cfg before installing the feature.
 jdbcUrl=jdbc:sqlite:${karaf.data}/drremote.sqlite
 poolName=db-sqlite-pool
+# Optional native Hikari JMX management; see docs/diagnostics.md.
+registerMbeans=false
 maxPoolSize=1
 minIdle=1
 busyTimeoutMs=5000

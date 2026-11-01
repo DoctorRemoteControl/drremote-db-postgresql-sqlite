@@ -57,6 +57,7 @@ public final class HikariDataSourceComponent implements DataSource {
         int maxPoolSize = getInt(props, "maxPoolSize", 1);
         int minIdle = getInt(props, "minIdle", 1);
         String poolName = getString(props, "poolName", "db-duckdb-pool");
+        boolean registerMbeans = getBoolean(props, "registerMbeans", false);
         boolean readOnly = getBoolean(props, "readOnly", false);
         String tempDirectory = getString(props, "tempDirectory", null);
 
@@ -73,6 +74,7 @@ public final class HikariDataSourceComponent implements DataSource {
         hc.setMaximumPoolSize(maxPoolSize);
         hc.setMinimumIdle(minIdle);
         hc.setPoolName(poolName);
+        hc.setRegisterMbeans(registerMbeans);
 
         if (readOnly) {
             hc.addDataSourceProperty("duckdb.read_only", "true");
@@ -81,8 +83,15 @@ public final class HikariDataSourceComponent implements DataSource {
             hc.addDataSourceProperty("temp_directory", tempDirectory);
         }
 
-        HikariDataSource newDelegate = new HikariDataSource(hc);
         HikariDataSource oldDelegate = delegate;
+        // Hikari registers MBeans during startup. A same-name replacement would
+        // collide with the running pool and then lose its MBeans on old-pool close.
+        if (registerMbeans && oldDelegate != null && oldDelegate.isRegisterMbeans()
+                && poolName.equals(oldDelegate.getPoolName())) {
+            throw new IllegalStateException("JMX poolName is already active: " + poolName
+                + "; change poolName when replacing an enabled pool, or restart the component");
+        }
+        HikariDataSource newDelegate = new HikariDataSource(hc);
         delegate = newDelegate;
         closeQuietly(oldDelegate);
     }

@@ -33,9 +33,9 @@
 
 ## Task 2: Native Hikari diagnostics
 
-- [ ] Add real-pool JMX lifecycle tests for the three data sources (PostgreSQL env-gated). Observe missing-property RED.
-- [ ] Pass `registerMbeans` to Hikari, default false. Handle conflicting enabled same-name replacement without disrupting the current pool. Verify enable, counters, safe rejection, distinct-name replacement, disable, and cleanup; commit.
-- [ ] Document the property, pool identity/reconfiguration rules, and use of local existing management tools; update example configurations.
+- [x] Add real-pool JMX lifecycle tests for the three data sources (PostgreSQL env-gated). Observe missing-property RED.
+- [x] Pass `registerMbeans` to Hikari, default false. Handle conflicting enabled same-name replacement without disrupting the current pool. Verify enable, counters, safe rejection, distinct-name replacement, disable, and cleanup; commit.
+- [x] Document the property, pool identity/reconfiguration rules, and use of local existing management tools; update example configurations.
 
 ## Task 3: Protect complex PostgreSQL scripts
 

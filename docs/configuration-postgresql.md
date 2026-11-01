@@ -11,6 +11,7 @@ jdbcUrl=jdbc:postgresql://localhost:5432/appdb
 username=app_user
 password=REPLACE_WITH_YOUR_DATABASE_PASSWORD
 poolName=db-postgresql-pool
+registerMbeans=false
 maxPoolSize=10
 minIdle=1
 migrationsEnabled=true
@@ -24,6 +25,7 @@ psqlConnectTimeoutSeconds=30
 | `username` | Required for the data source. |
 | `password` | Set the database user's actual password for password authentication. |
 | `poolName` | `db-postgresql-pool` |
+| `registerMbeans` | `false`; enable native Hikari JMX management/diagnostics. |
 | `maxPoolSize` | `10` |
 | `minIdle` | `1` |
 | `migrationsEnabled` | `true`; `false` disables automatic and explicit migrations. |
@@ -37,5 +39,7 @@ The migration service creates the `core` schema and its tracking tables and crea
 `psql` is needed only for `ScriptMigration` descriptors and must be installed on the machine running the bundle. Script execution passes the password in the child process environment, not in the command-line arguments. Protect your actual configuration using your runtime's normal credential handling and file permissions.
 
 ConfigAdmin applies changes dynamically. Coordinate connection/pool changes and verify migration state before enabling a previously disabled migration service.
+
+See [pool diagnostics](diagnostics.md) for counters, unique pool names, and JMX-enabled reconfiguration rules.
 
 See [installation](installation.md) and [usage](usage-postgresql.md).

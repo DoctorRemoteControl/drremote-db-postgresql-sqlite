@@ -4,6 +4,8 @@ jdbcUrl=jdbc:postgresql://localhost:5432/appdb
 username=app_user
 password=REPLACE_WITH_YOUR_DATABASE_PASSWORD
 poolName=db-postgresql-pool
+# Optional native Hikari JMX management; see docs/diagnostics.md.
+registerMbeans=false
 maxPoolSize=10
 minIdle=1
 migrationsEnabled=true

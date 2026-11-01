@@ -57,6 +57,7 @@ public final class HikariDataSourceComponent implements DataSource {
         int maxPoolSize = getInt(props, "maxPoolSize", 10);
         int minIdle = getInt(props, "minIdle", 1);
         String poolName = getString(props, "poolName", "db-postgresql-pool");
+        boolean registerMbeans = getBoolean(props, "registerMbeans", false);
 
         // optional: support legacy keys as fallback
         jdbcUrl = getString(props, "jdbcUrl", getString(props, "dbcore.jdbcUrl", jdbcUrl));
@@ -78,9 +79,17 @@ public final class HikariDataSourceComponent implements DataSource {
         hc.setMaximumPoolSize(maxPoolSize);
         hc.setMinimumIdle(minIdle);
         hc.setPoolName(poolName);
+        hc.setRegisterMbeans(registerMbeans);
 
-        HikariDataSource newDelegate = new HikariDataSource(hc);
         HikariDataSource oldDelegate = delegate;
+        // Hikari registers MBeans during startup. A same-name replacement would
+        // collide with the running pool and then lose its MBeans on old-pool close.
+        if (registerMbeans && oldDelegate != null && oldDelegate.isRegisterMbeans()
+                && poolName.equals(oldDelegate.getPoolName())) {
+            throw new IllegalStateException("JMX poolName is already active: " + poolName
+                + "; change poolName when replacing an enabled pool, or restart the component");
+        }
+        HikariDataSource newDelegate = new HikariDataSource(hc);
         delegate = newDelegate;
         closeQuietly(oldDelegate);
     }
@@ -108,6 +117,13 @@ public final class HikariDataSourceComponent implements DataSource {
         if (v instanceof Number n) return n.intValue();
         try { return Integer.parseInt(String.valueOf(v).trim()); }
         catch (Exception e) { return def; }
+    }
+
+    private static boolean getBoolean(Map<String, Object> props, String key, boolean def) {
+        Object value = props == null ? null : props.get(key);
+        if (value == null) return def;
+        if (value instanceof Boolean bool) return bool;
+        return Boolean.parseBoolean(String.valueOf(value).trim());
     }
 
     // =====================
