@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent><groupId>de.drremote</groupId><artifactId>db-parent</artifactId><version>1.1.0-SNAPSHOT</version><relativePath>../../pom.xml</relativePath></parent>
+  <groupId>de.drremote.db.examples</groupId><artifactId>json-client</artifactId><packaging>bundle</packaging>
+  <name>DrRemote DB JSON settings example</name>
+  <dependencies>
+    <dependency><groupId>de.drremote.db</groupId><artifactId>sqlite</artifactId><version>${project.version}</version><scope>provided</scope></dependency>
+    <dependency><groupId>de.drremote.db</groupId><artifactId>json</artifactId><version>${project.version}</version><scope>provided</scope></dependency>
+    <dependency><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId><scope>provided</scope></dependency>
+    <dependency><groupId>org.osgi</groupId><artifactId>org.osgi.service.component.annotations</artifactId><scope>provided</scope></dependency>
+  </dependencies>
+  <build><plugins>
+    <plugin>
+      <groupId>org.apache.felix</groupId><artifactId>maven-bundle-plugin</artifactId><extensions>true</extensions>
+      <configuration><instructions>
+        <Bundle-SymbolicName>de.drremote.db.examples.json</Bundle-SymbolicName>
+        <Export-Package>example.jsonsettings</Export-Package>
+      </instructions></configuration>
+    </plugin>
+  </plugins></build>
+</project>

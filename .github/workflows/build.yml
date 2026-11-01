@@ -46,6 +46,8 @@ jobs:
         run: mvn --batch-mode --no-transfer-progress clean install
       - name: Build the SQLite example
         run: mvn --batch-mode --no-transfer-progress -f examples/notes-client/pom.xml verify
+      - name: Build the JSON example
+        run: mvn --batch-mode --no-transfer-progress -f examples/json-client/pom.xml verify
       - name: Upload bundles, feature descriptors, and example
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -55,6 +57,7 @@ jobs:
             de.drremote.db.*/target/*.jar
             de.drremote.db.*.features/target/feature/feature.xml
             examples/notes-client/target/*.jar
+            examples/json-client/target/*.jar
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
