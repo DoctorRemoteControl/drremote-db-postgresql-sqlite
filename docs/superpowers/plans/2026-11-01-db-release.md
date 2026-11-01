@@ -27,9 +27,9 @@
 
 ## Task 1: JDBC query regression fixes
 
-- [ ] Start only the dedicated temporary PostgreSQL cluster and verify the existing 81-test baseline.
-- [ ] Add regression tests for all three runners: zero/one/multiple rows, second-row early rejection, success cleanup, binding failures (SQL/runtime/error), and suppressed cleanup failures. Observe RED.
-- [ ] Implement direct `queryOne` iteration and exception-safe binding. Run affected tests GREEN; commit.
+- [x] Start only the dedicated temporary PostgreSQL cluster and verify the existing 81-test baseline.
+- [x] Add regression tests for all three runners: zero/one/multiple rows, second-row early rejection, success cleanup, binding failures (SQL/runtime/error), and suppressed cleanup failures. Observe RED.
+- [x] Implement direct `queryOne` iteration and exception-safe binding. Run affected tests GREEN; commit.
 
 ## Task 2: Native Hikari diagnostics
 
