@@ -39,8 +39,8 @@
 
 ## Task 3: Protect complex PostgreSQL scripts
 
-- [ ] Add real psql tests for procedural blocks, meta-commands, COPY input, replay, failed-script rollback/history, and explicit transaction opt-out. Run against the dedicated PostgreSQL instance.
-- [ ] Keep production psql behavior unchanged unless a reproduced test requires correction. Update the guide with the JDBC/psql distinction and an example; commit.
+- [x] Add real psql tests for procedural blocks, meta-commands, COPY input, replay, failed-script rollback/history, and explicit transaction opt-out. Run against the dedicated PostgreSQL instance.
+- [x] Keep production psql behavior unchanged unless a reproduced test requires correction. Update the guide with the JDBC/psql distinction and an example; commit.
 
 ## Task 4: Release assets and complete verification
 

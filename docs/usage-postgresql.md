@@ -46,6 +46,10 @@ private DatabaseReady ready;
 
 ## Script migrations
 
+`psql` is an intentional, supported execution path for complex PostgreSQL
+migrations. Keep it installed on the runtime host when plugins use
+`ScriptMigration`; this support is not replaced by the JDBC query helper.
+
 Implement `ScriptMigration` when a migration needs a resource URL, `psql` commands, or a SQL script:
 
 ```java
@@ -61,6 +65,47 @@ The resource must exist in your client bundle. The runner loads the script into 
 
 The configured `psqlConnectTimeoutSeconds` limits connection establishment. It does not impose a whole-script execution timeout. JDBC migrations and an external `psql` process do not share one JDBC transaction.
 
+### Choosing JDBC or psql
+
+PostgreSQL functions and `DO $$ ... $$` blocks are SQL and can also execute over
+JDBC when sent as complete statements. Internal semicolons are not a reason to
+split their bodies. In contrast, `\copy`, `\set`, `\if`, and `\gexec` are client
+meta-commands interpreted by psql; passing them to a JDBC statement does not
+provide equivalent behavior. Use `ScriptMigration` for those scripts and for
+existing psql-oriented migration resources.
+
+For example, a script resource can contain both procedural SQL and psql commands:
+
+```sql
+CREATE TABLE app_labels (id INTEGER PRIMARY KEY, label TEXT NOT NULL);
+
+DO $migration$
+BEGIN
+    INSERT INTO app_labels VALUES (1, 'text; with an internal semicolon');
+END;
+$migration$;
+
+\copy app_labels (id, label) FROM stdin WITH (FORMAT csv)
+2,imported label
+\.
+```
+
+The script runs with the plugin's search path. Keep migration versions ordered
+and do not add your own `BEGIN`/`COMMIT` inside a script that relies on the
+default single-transaction wrapper. `CREATE INDEX CONCURRENTLY` is an example
+that requires `isSingleTransaction()` to return false; a failed nontransactional
+script can leave partial work and needs an application-specific recovery plan.
+The migration's tracking row is written only after successful script execution.
+
+Scripts are loaded from their resource URL into a temporary file. Additional
+files referenced by `\i`, `\ir`, or file-based `\copy` must exist at the paths
+psql resolves on the runtime host; sibling bundle resources are not extracted
+automatically. `COPY ... FROM stdin` input embedded in the script is supported.
+
+The [real integration fixture](../de.drremote.db.postgresql/src/test/resources/migrations/complex-psql.sql)
+exercises procedural SQL, meta-commands, and COPY input together. Its `${table}`
+placeholder is substituted by the test, not by the production migration runner.
+
 ## Validation
 
-The default Maven suite exercises nested transaction coordination, rollback/error paths, JDBC-to-psql URL conversion, and script command construction/execution with a temporary fake executable. It does not start a live PostgreSQL server. With `DRREMOTE_TEST_POSTGRES_URL` set, additional integration tests check schema placement, replay, a one-connection pool, and mixed JDBC/psql migrations against a dedicated database. CI supplies PostgreSQL 17; see [contributing](../CONTRIBUTING.md) for local setup. Validate your own migrations against the PostgreSQL versions you support.
+The default Maven suite exercises nested transaction coordination, rollback/error paths, JDBC-to-psql URL conversion, and script command construction/execution with a temporary fake executable. It does not start a live PostgreSQL server. With `DRREMOTE_TEST_POSTGRES_URL` set, additional integration tests require a real `psql` executable and check schema placement, replay, a one-connection pool, mixed JDBC/psql migrations, complex procedural/meta-command scripts, transactional rollback/history, and concurrent index creation with an explicit transaction opt-out. CI supplies PostgreSQL 17; see [contributing](../CONTRIBUTING.md) for local setup. Validate your own migrations against the PostgreSQL versions you support.
