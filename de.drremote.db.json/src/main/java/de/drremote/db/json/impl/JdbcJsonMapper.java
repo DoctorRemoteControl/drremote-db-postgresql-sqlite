@@ -9,15 +9,16 @@ import de.drremote.db.json.api.JsonDbException;
 import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Types;
-import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.time.temporal.TemporalAccessor;
-import java.util.HashSet;
 import java.util.Base64;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -25,75 +26,100 @@ import java.util.UUID;
 /** Internal mapping plan, validated once for a result set. */
 public final class JdbcJsonMapper {
     private static final JsonNodeFactory NODES = JsonNodeFactory.instance;
-    private final String[] labels;
-    private final String[] typeNames;
-    private final int[] types;
-    private final boolean[] json;
+    private final Column[] columns;
+
+    private record Column(String label, String typeName, int type, boolean json) {}
+
+    @FunctionalInterface
+    private interface SqlResource extends AutoCloseable {
+        @Override void close() throws SQLException;
+    }
 
     public JdbcJsonMapper(ResultSetMetaData metadata, Set<String> selectedJson) throws SQLException {
-        int count = metadata.getColumnCount();
-        labels = new String[count];
-        typeNames = new String[count];
-        types = new int[count];
-        json = new boolean[count];
+        columns = new Column[metadata.getColumnCount()];
         Set<String> seen = new HashSet<>();
-        for (int i = 0; i < count; i++) {
+        for (int i = 0; i < columns.length; i++) {
             String label = metadata.getColumnLabel(i + 1);
             if (label == null || label.isBlank()) throw new JsonDbException("Blank result column label; supply an SQL alias");
             if (!seen.add(label)) throw new JsonDbException("Duplicate result column label: " + label);
-            labels[i] = label;
-            typeNames[i] = Objects.toString(metadata.getColumnTypeName(i + 1), "");
-            types[i] = metadata.getColumnType(i + 1);
-            json[i] = selectedJson.contains(label) || "json".equalsIgnoreCase(typeNames[i])
-                || "jsonb".equalsIgnoreCase(typeNames[i]);
+            columns[i] = metadata(metadata, i + 1, label, selectedJson.contains(label));
         }
         for (String label : selectedJson) {
             if (!seen.contains(label)) throw new JsonDbException("JSON column label is missing from result: " + label);
         }
     }
 
+    private Column metadata(ResultSetMetaData metadata, int index, String label, boolean selected) throws SQLException {
+        String name = Objects.toString(metadata.getColumnTypeName(index), "");
+        return new Column(label, name, metadata.getColumnType(index), selected
+            || "json".equalsIgnoreCase(name) || "jsonb".equalsIgnoreCase(name));
+    }
+
     public ObjectNode read(ResultSet rows) throws SQLException {
         ObjectNode object = NODES.objectNode();
-        for (int i = 0; i < labels.length; i++) object.set(labels[i], column(rows, i));
+        for (int i = 0; i < columns.length; i++) object.set(columns[i].label(), column(rows, i + 1, columns[i]));
         return object;
     }
 
-    private JsonNode column(ResultSet rows, int index) throws SQLException {
-        int column = index + 1;
-        if (json[index]) {
-            String text = rows.getString(column);
+    private JsonNode column(ResultSet rows, int index, Column column) throws SQLException {
+        if (column.json()) {
+            String text = rows.getString(index);
             if (text == null) return NODES.nullNode();
             try {
                 return JsonCodec.parse(text);
             } catch (JsonProcessingException | IllegalArgumentException failure) {
-                throw new JsonDbException("Invalid JSON in column '" + labels[index] + "'", failure);
+                throw new JsonDbException("Invalid JSON in column '" + column.label() + "'", failure);
             }
         }
-        if (types[index] == Types.BINARY || types[index] == Types.VARBINARY
-                || types[index] == Types.LONGVARBINARY || types[index] == Types.BLOB) {
-            byte[] bytes = rows.getBytes(column);
-            return bytes == null ? NODES.nullNode() : NODES.textNode(Base64.getEncoder().encodeToString(bytes));
-        }
-        Object value = rows.getObject(column);
+        // SQLite result metadata can describe the first row rather than every value.
+        Object value = rows.getObject(index);
         if (value == null) return NODES.nullNode();
-        if (types[index] == Types.BOOLEAN || "BOOLEAN".equalsIgnoreCase(typeNames[index])
-                || "BOOL".equalsIgnoreCase(typeNames[index])) {
-            return NODES.booleanNode(rows.getBoolean(column));
+        boolean bool = column.type() == Types.BOOLEAN || "BOOLEAN".equalsIgnoreCase(column.typeName())
+            || "BOOL".equalsIgnoreCase(column.typeName());
+        if (bool && (value instanceof Byte || value instanceof Short || value instanceof Integer || value instanceof Long)) {
+            long number = ((Number) value).longValue();
+            if (number == 0 || number == 1) return NODES.booleanNode(number == 1);
         }
-        if (types[index] == Types.TIMESTAMP_WITH_TIMEZONE
-                || "timestamptz".equalsIgnoreCase(typeNames[index])
-                || "TIMESTAMP WITH TIME ZONE".equalsIgnoreCase(typeNames[index])) {
-            return NODES.textNode(rows.getObject(column, OffsetDateTime.class).toString());
+        if (value instanceof java.sql.Timestamp timestamp) {
+            boolean zoned = column.type() == Types.TIMESTAMP_WITH_TIMEZONE
+                || "timestamptz".equalsIgnoreCase(column.typeName())
+                || "TIMESTAMP WITH TIME ZONE".equalsIgnoreCase(column.typeName());
+            return NODES.textNode(zoned ? timestamp.toInstant().toString() : timestamp.toLocalDateTime().toString());
         }
-        if (types[index] == Types.TIME_WITH_TIMEZONE || "timetz".equalsIgnoreCase(typeNames[index])
-                || "TIME WITH TIME ZONE".equalsIgnoreCase(typeNames[index])) {
-            return NODES.textNode(rows.getObject(column, OffsetTime.class).toString());
+        if (column.type() == Types.TIME_WITH_TIMEZONE || value instanceof java.sql.Time
+                && ("timetz".equalsIgnoreCase(column.typeName()) || "TIME WITH TIME ZONE".equalsIgnoreCase(column.typeName()))) {
+            return NODES.textNode(rows.getObject(index, OffsetTime.class).toString());
         }
         if (value instanceof java.sql.Time) {
             // java.sql.Time drops fractional seconds; the JDBC text retains them.
-            return NODES.textNode(rows.getString(column));
+            return NODES.textNode(rows.getString(index));
         }
-        return value(value, labels[index]);
+        return value(value, column.label());
+    }
+
+    private JsonNode sqlArray(java.sql.Array array, String label) throws SQLException {
+        try (SqlResource free = array::free; ResultSet elements = array.getResultSet()) {
+            Column element;
+            try {
+                element = metadata(elements.getMetaData(), 2, label + "[]", false);
+            } catch (SQLFeatureNotSupportedException unsupported) {
+                // DuckDB exposes array element types on Array rather than its ResultSet.
+                String name = Objects.toString(array.getBaseTypeName(), "");
+                element = new Column(label + "[]", name, array.getBaseType(),
+                    "json".equalsIgnoreCase(name) || "jsonb".equalsIgnoreCase(name));
+            }
+            var result = NODES.arrayNode();
+            while (elements.next()) result.add(column(elements, 2, element));
+            return result;
+        }
+    }
+
+    private JsonNode binary(Blob blob, String label) throws SQLException {
+        try (SqlResource free = blob::free) {
+            long length = blob.length();
+            if (length > Integer.MAX_VALUE) throw new JsonDbException("Binary value too large to materialize in column '" + label + "'");
+            return NODES.textNode(Base64.getEncoder().encodeToString(blob.getBytes(1, (int) length)));
+        }
     }
 
     private JsonNode value(Object value, String label) throws SQLException {
@@ -113,17 +139,10 @@ public final class JdbcJsonMapper {
             return NODES.numberNode(number);
         }
         if (value instanceof java.sql.Date date) return NODES.textNode(date.toLocalDate().toString());
-        if (value instanceof java.sql.Time time) return NODES.textNode(time.toLocalTime().toString());
-        if (value instanceof java.sql.Timestamp timestamp) return NODES.textNode(timestamp.toLocalDateTime().toString());
         if (value instanceof TemporalAccessor || value instanceof UUID) return NODES.textNode(value.toString());
         if (value instanceof byte[] bytes) return NODES.textNode(Base64.getEncoder().encodeToString(bytes));
-        if (value instanceof java.sql.Array array) {
-            try {
-                return value(array.getArray(), label);
-            } finally {
-                array.free();
-            }
-        }
+        if (value instanceof Blob blob) return binary(blob, label);
+        if (value instanceof java.sql.Array array) return sqlArray(array, label);
         if (value.getClass().isArray()) {
             var result = NODES.arrayNode();
             for (int i = 0; i < Array.getLength(value); i++) result.add(value(Array.get(value, i), label));

@@ -17,7 +17,11 @@ public final class JsonValue {
         this.json = json;
     }
 
-    /** Serializes a snapshot so subsequent changes to the node cannot change it. */
+    /**
+     * Serializes a snapshot so subsequent changes cannot affect it. Non-finite
+     * numbers, missing nodes, and embedded Java objects are rejected throughout
+     * the tree. Jackson's nesting limit also rejects cycles/overly deep input.
+     */
     public static JsonValue of(JsonNode node) {
         Objects.requireNonNull(node, "node");
         if (node.isMissingNode()) throw new IllegalArgumentException("MissingNode is not a JSON value");

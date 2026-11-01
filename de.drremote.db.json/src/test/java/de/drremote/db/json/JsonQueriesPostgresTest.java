@@ -101,4 +101,21 @@ class JsonQueriesPostgresTest {
         assertEquals(0, json.queryOne("SELECT COUNT(*) AS count FROM document").path("count").intValue());
         assertFalse(connection.isClosed());
     }
+
+    @Test
+    void arrayElementsPreserveTimePrecisionTimezoneAndNativeJson() {
+        var row = json.queryOne("""
+            SELECT ARRAY[NULL::TIME, TIME '12:34:56.123456'] AS clocks,
+                   ARRAY[TIMESTAMPTZ '2026-11-01 12:34:56.123456+02:00'] AS instants,
+                   ARRAY[[TIMESTAMPTZ '2026-11-01 12:34:56.123456+02:00']] AS nested,
+                   ARRAY['{"enabled":true}'::JSONB] AS documents
+            """);
+        assertTrue(row.path("clocks").get(0).isNull());
+        assertEquals("12:34:56.123456", row.path("clocks").get(1).textValue());
+        Instant instant = Instant.parse("2026-11-01T10:34:56.123456Z");
+        assertEquals(instant, OffsetDateTime.parse(row.path("instants").get(0).textValue()).toInstant());
+        assertEquals(instant, OffsetDateTime.parse(row.path("nested").get(0).get(0).textValue()).toInstant());
+        assertTrue(row.path("documents").get(0).isObject());
+        assertTrue(row.path("documents").get(0).path("enabled").booleanValue());
+    }
 }

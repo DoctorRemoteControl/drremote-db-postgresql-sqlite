@@ -97,4 +97,15 @@ class JsonQueriesDuckDbTest {
         assertEquals(0, json.queryOne("SELECT COUNT(*) AS count FROM document").path("count").intValue());
         assertFalse(connection.isClosed());
     }
+
+    @Test
+    void temporalArrayElementsKeepTheirPrecisionAndInstant() {
+        var row = json.queryOne("""
+            SELECT [TIME '12:34:56.123456'] AS clocks,
+                   [TIMESTAMPTZ '2026-11-01 12:34:56.123456+02:00'] AS instants
+            """);
+        assertEquals("12:34:56.123456", row.path("clocks").get(0).textValue());
+        assertEquals(Instant.parse("2026-11-01T10:34:56.123456Z"),
+            OffsetDateTime.parse(row.path("instants").get(0).textValue()).toInstant());
+    }
 }

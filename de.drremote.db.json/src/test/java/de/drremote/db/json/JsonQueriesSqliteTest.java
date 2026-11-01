@@ -114,4 +114,37 @@ class JsonQueriesSqliteTest {
         assertEquals(0, json.queryOne("SELECT COUNT(*) AS count FROM item").path("count").intValue());
         assertFalse(connection.getAutoCommit());
     }
+
+    @Test
+    void heterogeneousColumnValuesKeepTheirTypesRegardlessOfFirstRow() {
+        var binaryFirst = json.query("SELECT x'61' AS v UNION ALL SELECT 'hello' UNION ALL SELECT 123");
+        assertEquals("YQ==", binaryFirst.get(0).path("v").textValue());
+        assertEquals("hello", binaryFirst.get(1).path("v").textValue());
+        assertTrue(binaryFirst.get(2).path("v").isIntegralNumber());
+        assertEquals(123, binaryFirst.get(2).path("v").intValue());
+        var textFirst = json.query("SELECT 'hello' AS v UNION ALL SELECT x'61' UNION ALL SELECT 123");
+        assertEquals("hello", textFirst.get(0).path("v").textValue());
+        assertEquals("YQ==", textFirst.get(1).path("v").textValue());
+        assertEquals(123, textFirst.get(2).path("v").intValue());
+    }
+
+    @Test
+    void invalidDirectJsonNodesAreRejectedBeforeAnyDataIsWritten() throws Exception {
+        var document = JsonNodeFactory.instance.objectNode().put("amount", Double.POSITIVE_INFINITY);
+        assertThrows(IllegalArgumentException.class,
+            () -> json.update("INSERT INTO item(id, payload) VALUES (?, ?)", 1, document));
+        assertFalse(connection.isClosed());
+        assertEquals(0, json.queryOne("SELECT COUNT(*) AS count FROM item").path("count").intValue());
+    }
+
+    @Test
+    void booleanDeclarationsDoNotCoerceUnrelatedSqliteValues() {
+        json.update("CREATE TABLE mixed_flag(value BOOLEAN)");
+        json.update("INSERT INTO mixed_flag VALUES (?), (?), (?)", true, "hello", 2);
+        var rows = json.query("SELECT value FROM mixed_flag ORDER BY rowid");
+        assertTrue(rows.get(0).path("value").booleanValue());
+        assertEquals("hello", rows.get(1).path("value").textValue());
+        assertTrue(rows.get(2).path("value").isIntegralNumber());
+        assertEquals(2, rows.get(2).path("value").intValue());
+    }
 }
