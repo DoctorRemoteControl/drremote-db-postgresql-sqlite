@@ -75,7 +75,9 @@ SQL and JSON query operators remain specific to the chosen database.
 when the original node may change later. Direct node parameters are serialized
 when the statement is prepared. `JsonValue.parse(text)` accepts exactly one
 complete JSON value, including arrays and scalars, and rejects empty/malformed
-input or trailing documents.
+input or trailing documents. Node snapshots also reject non-finite numbers and
+missing nodes anywhere in the tree, embedded Java objects, and cyclic/overly
+deep trees. Convert Java objects to ordinary JSON nodes before binding them.
 
 ### JSON null and SQL NULL
 
@@ -116,8 +118,12 @@ JSON string even if it looks like an object, number, or boolean.
 | Date/time/timestamp | ISO-style text; timezone-aware values retain an offset. |
 | UUID | String. |
 | Binary values | Base64 string. |
-| SQL/Java arrays | JSON array, including null entries. |
+| SQL/Java arrays | JSON array, including null entries; JDBC element metadata preserves temporal values. |
 | Native or explicitly selected JSON | Parsed JSON value. |
+
+SQLite values retain their runtime types even when one result column mixes
+binary, text, and numeric values. Declared SQLite boolean columns map 0/1 to
+booleans and retain unrelated values as their actual types.
 
 NaN/infinity and unsupported JDBC objects fail clearly; use an explicit SQL cast
 when your application wants a textual representation instead. Precision already
